@@ -260,6 +260,56 @@ const ThreadReader = {
 
         let parsed = content;
 
+        // Parse emoticons: [s:category:emoticon_name]
+        parsed = parsed.replace(/\[s:([^:]+):([^\]]+)\]/g, (match, category, name) => {
+            // Use global function from emoticons.js
+            if (typeof getEmoticonUrl === 'function') {
+                const emoticonUrl = getEmoticonUrl(name, category);
+                if (emoticonUrl) {
+                    return `<img src="${emoticonUrl}" alt="${this.escapeHtml(name)}" class="emoticon" loading="lazy" title="${this.escapeHtml(name)}">`;
+                }
+            }
+            // Fallback: return original text if emoticon not found
+            return match;
+        });
+
+        // Parse text formatting BBCode
+        // Bold: [b]...[/b]
+        parsed = parsed.replace(/\[b\]([\s\S]*?)\[\/b\]/g, '<strong>$1</strong>');
+
+        // Italic: [i]...[/i]
+        parsed = parsed.replace(/\[i\]([\s\S]*?)\[\/i\]/g, '<em>$1</em>');
+
+        // Underline: [u]...[/u]
+        parsed = parsed.replace(/\[u\]([\s\S]*?)\[\/u\]/g, '<u>$1</u>');
+
+        // Strikethrough: [del]...[/del]
+        parsed = parsed.replace(/\[del\]([\s\S]*?)\[\/del\]/g, '<del>$1</del>');
+
+        // Color: [color=red]...[/color]
+        parsed = parsed.replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]/g, (match, color, text) => {
+            const safeColor = this.escapeHtml(color);
+            return `<span style="color:${safeColor}">${text}</span>`;
+        });
+
+        // Size: [size=14px]...[/size]
+        parsed = parsed.replace(/\[size=([^\]]+)\]([\s\S]*?)\[\/size\]/g, (match, size, text) => {
+            const safeSize = this.escapeHtml(size);
+            return `<span style="font-size:${safeSize}">${text}</span>`;
+        });
+
+        // Align: [align=center]...[/align]
+        parsed = parsed.replace(/\[align=([^\]]+)\]([\s\S]*?)\[\/align\]/g, (match, align, text) => {
+            const safeAlign = this.escapeHtml(align);
+            return `<div style="text-align:${safeAlign}">${text}</div>`;
+        });
+
+        // Collapse: [collapse]...[/collapse] or [collapse=title]...[/collapse]
+        parsed = parsed.replace(/\[collapse(?:=([^\]]+))?\]([\s\S]*?)\[\/collapse\]/g, (match, title, content) => {
+            const summary = title ? this.escapeHtml(title) : '已折叠，点击展开';
+            return `<details class="collapse-block"><summary>${summary}</summary><div class="collapse-content">${content}</div></details>`;
+        });
+
         // Parse [quote] tags to blockquote (with XSS protection)
         parsed = parsed.replace(/\[quote\]([\s\S]*?)\[\/quote\]/g, (match, quoteContent) => {
             return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 text-muted">${quoteContent}</blockquote>`;
@@ -304,7 +354,7 @@ const ThreadReader = {
         parsed = parsed.replace(/\[img\](.*?)\[\/img\]/g, (match, url) => {
             const cleanUrl = url.replace(/['"<>]/g, ''); // Remove potential XSS chars
             const fullUrl = cleanUrl.startsWith('http') ? cleanUrl : attachPrefix + cleanUrl;
-            return `<img src="https://wsrv.nl/?url=${encodeURIComponent(fullUrl)}&w=800&fit=inside&a=attention" class="img-fluid" loading="lazy" alt="Image">`;
+            return `<img src="https://wsrv.nl/?url=${encodeURIComponent(fullUrl)}" class="img-fluid" loading="lazy" alt="Image">`;
         });
 
         // Parse [flash] video tags (bilibili, youtube, etc)
@@ -325,11 +375,20 @@ const ThreadReader = {
             return `<a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-primary my-2"><i class="bi bi-play-circle"></i> View Video</a>`;
         });
 
-        // Convert standalone URLs to links (that are not already in HTML tags)
-        parsed = parsed.replace(/(?<!["'])(?<!href=)(https?:\/\/[^\s<>"']+)/g, (url) => {
-            const safeUrl = this.escapeHtml(url);
-            return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
-        });
+        // Convert standalone URLs to links (but not URLs in HTML attributes)
+        // Split by existing HTML tags to avoid modifying URLs inside tags
+        const parts = parsed.split(/(<[^>]+>)/);
+        parsed = parts.map((part, index) => {
+            // Skip HTML tags (odd indices after split)
+            if (part.startsWith('<') && part.endsWith('>')) {
+                return part;
+            }
+            // Convert URLs in text content only
+            return part.replace(/(https?:\/\/[^\s<>"]+)/g, (url) => {
+                const safeUrl = this.escapeHtml(url);
+                return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
+            });
+        }).join('');
 
         // Convert line breaks
         parsed = parsed.replace(/\n/g, '<br>');
