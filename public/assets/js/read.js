@@ -2,47 +2,91 @@ const ThreadReader = {
     currentPage: 1,
     currentTid: null,
     loading: false,
-    hasMorePages: true,
-    observer: null,
+    totalPages: 1,
     threadInfo: null,
 
     init() {
         const threadPage = document.getElementById('thread-posts');
         if (threadPage) {
             this.currentTid = threadPage.dataset.tid;
+
+            // Get page from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            this.currentPage = parseInt(urlParams.get('page')) || 1;
+
             this.loadPosts();
-            this.setupInfiniteScroll();
+            this.setupPaginationHandlers();
         }
     },
 
-    setupInfiniteScroll() {
-        const sentinel = document.getElementById('scroll-sentinel');
-
-        this.observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && this.hasMorePages && !this.loading) {
-                    this.currentPage++;
-                    this.loadPosts(true);
+    setupPaginationHandlers() {
+        // Previous page button
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'prev-page' || e.target.closest('#prev-page')) {
+                e.preventDefault();
+                if (this.currentPage > 1) {
+                    this.goToPage(this.currentPage - 1);
                 }
-            });
-        }, {
-            rootMargin: '100px'
+            }
         });
 
-        this.observer.observe(sentinel);
+        // Next page button
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'next-page' || e.target.closest('#next-page')) {
+                e.preventDefault();
+                if (this.currentPage < this.totalPages) {
+                    this.goToPage(this.currentPage + 1);
+                }
+            }
+        });
+
+        // Page number buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('page-num-btn')) {
+                e.preventDefault();
+                const page = parseInt(e.target.dataset.page);
+                if (page && page !== this.currentPage) {
+                    this.goToPage(page);
+                }
+            }
+        });
+
+        // Page input form
+        const pageForm = document.getElementById('page-jump-form');
+        if (pageForm) {
+            pageForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const input = document.getElementById('page-input');
+                const page = parseInt(input.value);
+                if (page && page >= 1 && page <= this.totalPages) {
+                    this.goToPage(page);
+                } else {
+                    input.value = this.currentPage;
+                }
+            });
+        }
     },
 
-    async loadPosts(append = false) {
+    goToPage(page) {
+        this.currentPage = page;
+
+        // Update URL without reload
+        const url = new URL(window.location);
+        url.searchParams.set('page', page);
+        window.history.pushState({}, '', url);
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Load posts
+        this.loadPosts();
+    },
+
+    async loadPosts() {
         if (this.loading) return;
 
         this.loading = true;
-
-        if (!append) {
-            this.showLoading();
-        } else {
-            document.getElementById('scroll-sentinel').querySelector('.spinner-border').style.display = 'inline-block';
-            document.getElementById('sentinel-text').style.display = 'block';
-        }
+        this.showLoading();
 
         try {
             const url = `/api/thread/${this.currentTid}/posts?page=${this.currentPage}`;
@@ -54,36 +98,29 @@ const ThreadReader = {
             } else if (data.code !== 0) {
                 this.showError(data.msg || 'API Error');
             } else {
-                this.renderPosts(data, append);
+                this.renderPosts(data);
             }
         } catch (error) {
             this.showError(error.message);
         } finally {
             this.loading = false;
-            const sentinel = document.getElementById('scroll-sentinel');
-            if (sentinel) {
-                sentinel.querySelector('.spinner-border').style.display = 'none';
-                sentinel.querySelector('#sentinel-text').style.display = 'none';
-            }
         }
     },
 
-    renderPosts(apiData, append = false) {
+    renderPosts(apiData) {
         const container = document.getElementById('posts-list');
 
         let posts = [];
-        let totalPages = 1;
-        let currentPage = 1;
         let attachPrefix = apiData.attachPrefix || '';
         let hotPosts = apiData.hot_post || [];
 
-        // Extract thread info on first load from top-level metadata
-        if (!append) {
+        // Extract thread info on first page load
+        if (this.currentPage === 1) {
             this.threadInfo = {
                 subject: apiData.tsubject || 'Untitled Thread',
                 author: apiData.tauthor || 'Unknown',
                 replies: apiData.vrows || 0,
-                postdate: '', // Not available in top-level
+                postdate: '',
                 fid: apiData.fid || null,
                 forumName: apiData.forum_name || 'Forum'
             };
@@ -97,26 +134,13 @@ const ThreadReader = {
         }
 
         // Pagination info is at top level
-        totalPages = apiData.totalPage || 1;
-        currentPage = apiData.currentPage || 1;
+        this.totalPages = apiData.totalPage || 1;
+        const currentPage = apiData.currentPage || 1;
 
         if (!posts || posts.length === 0) {
-            if (!append) {
-                container.innerHTML = '<div class="alert alert-warning">No posts found</div>';
-            }
-            this.hasMorePages = false;
-            document.getElementById('scroll-end').style.display = 'block';
+            container.innerHTML = '<div class="alert alert-warning">No posts found</div>';
+            this.renderPagination();
             return;
-        }
-
-        this.hasMorePages = currentPage < totalPages;
-
-        if (!this.hasMorePages) {
-            document.getElementById('scroll-sentinel').style.display = 'none';
-            document.getElementById('scroll-end').style.display = 'block';
-        } else {
-            document.getElementById('scroll-sentinel').style.display = 'block';
-            document.getElementById('scroll-end').style.display = 'none';
         }
 
         let postItems = '';
@@ -161,17 +185,14 @@ const ThreadReader = {
                 </div>
             `;
 
-            // Insert hot posts after #0 (only on first page, first load)
-            if (isOriginalPost && !append && hotPosts && hotPosts.length > 0) {
+            // Insert hot posts after #0 (only on first page)
+            if (isOriginalPost && this.currentPage === 1 && hotPosts && hotPosts.length > 0) {
                 postItems += this.renderHotPosts(hotPosts, attachPrefix);
             }
         });
 
-        if (append) {
-            container.insertAdjacentHTML('beforeend', postItems);
-        } else {
-            container.innerHTML = postItems;
-        }
+        container.innerHTML = postItems;
+        this.renderPagination();
     },
 
     renderHotPosts(hotPosts, attachPrefix) {
@@ -255,22 +276,194 @@ const ThreadReader = {
         breadcrumb.innerHTML = breadcrumbHtml;
     },
 
+    renderPagination() {
+        const container = document.getElementById('pagination-container');
+        if (!container) return;
+
+        if (this.totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let paginationHtml = '<nav aria-label="Thread pagination"><ul class="pagination justify-content-center">';
+
+        // Previous button
+        paginationHtml += `
+            <li class="page-item ${this.currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" id="prev-page" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        `;
+
+        // Page numbers with ellipsis
+        const maxVisible = 5;
+        const half = Math.floor(maxVisible / 2);
+        let startPage = Math.max(1, this.currentPage - half);
+        let endPage = Math.min(this.totalPages, startPage + maxVisible - 1);
+
+        // Adjust start if end is at max
+        if (endPage === this.totalPages) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        // First page + ellipsis
+        if (startPage > 1) {
+            paginationHtml += `<li class="page-item"><a class="page-link page-num-btn" href="#" data-page="1">1</a></li>`;
+            if (startPage > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `
+                <li class="page-item ${i === this.currentPage ? 'active' : ''}">
+                    <a class="page-link page-num-btn" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+
+        // Ellipsis + last page
+        if (endPage < this.totalPages) {
+            if (endPage < this.totalPages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHtml += `<li class="page-item"><a class="page-link page-num-btn" href="#" data-page="${this.totalPages}">${this.totalPages}</a></li>`;
+        }
+
+        // Next button
+        paginationHtml += `
+            <li class="page-item ${this.currentPage === this.totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" id="next-page" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        `;
+
+        paginationHtml += '</ul></nav>';
+
+        // Jump to page input
+        paginationHtml += `
+            <div class="d-flex justify-content-center align-items-center mt-2 gap-2">
+                <span class="text-muted small">Jump to:</span>
+                <form id="page-jump-form" class="d-flex gap-2">
+                    <input type="number"
+                           id="page-input"
+                           class="form-control form-control-sm"
+                           style="width: 80px;"
+                           min="1"
+                           max="${this.totalPages}"
+                           value="${this.currentPage}"
+                           autocomplete="off">
+                    <button type="submit" class="btn btn-sm btn-primary">Go</button>
+                </form>
+                <span class="text-muted small">/ ${this.totalPages}</span>
+            </div>
+        `;
+
+        container.innerHTML = paginationHtml;
+    },
+
     parseContent(content, attachPrefix) {
         if (!content) return '<p class="text-muted">No content</p>';
 
         let parsed = content;
 
-        // Parse emoticons: [s:category:emoticon_name]
+        // Parse emoticons first: [s:category:emoticon_name]
         parsed = parsed.replace(/\[s:([^:]+):([^\]]+)\]/g, (match, category, name) => {
-            // Use global function from emoticons.js
             if (typeof getEmoticonUrl === 'function') {
                 const emoticonUrl = getEmoticonUrl(name, category);
                 if (emoticonUrl) {
                     return `<img src="${emoticonUrl}" alt="${this.escapeHtml(name)}" class="emoticon" loading="lazy" title="${this.escapeHtml(name)}">`;
                 }
             }
-            // Fallback: return original text if emoticon not found
             return match;
+        });
+
+        // Parse [b]Reply to [pid]...[/pid] Post by [uid]...[/uid] (date)[/b] pattern
+        // Use [\s\S]*? to match any character including newlines
+        const replyToPattern = /\[b\]Reply to \[pid=([^\]]+)\]([\s\S]*?)\[\/pid\] Post by \[uid=(\d+)\]([\s\S]*?)\[\/uid\]\s*\(([^)]+)\)\[\/b\]/g;
+        if (/\[b\]Reply to \[pid=/.test(parsed)) {
+            console.log('[DEBUG] Found Reply-to pattern in content');
+        }
+        parsed = parsed.replace(replyToPattern,
+            (match, pidData, pidText, uid, username, date) => {
+                console.log('[DEBUG] Replacing Reply-to:', {pidData, username, date});
+                const parts = pidData.split(',');
+                const pid = parts[0];
+                const tid = parts[1] || '';
+                const floor = parseInt(parts[2]) || 0;
+                const page = Math.floor(floor / 20) + 1;
+                const safeUsername = this.escapeHtml(username);
+                const safeDate = this.escapeHtml(date);
+
+                if (tid) {
+                    return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <a href="/thread/${this.escapeHtml(tid)}?page=${page}#post-${this.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                }
+                return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
+            }
+        );
+
+        // Parse [quote] blocks BEFORE other BBCode (to preserve structure)
+        parsed = parsed.replace(/\[quote\]([\s\S]*?)\[\/quote\]/g, (match, quoteContent) => {
+            let quoteParsed = quoteContent;
+
+            // Parse [tid] inside quote for topic link
+            quoteParsed = quoteParsed.replace(/\[tid=([^\]]+)\](.*?)\[\/tid\]/g, (m, tid, text) => {
+                const safeTid = this.escapeHtml(tid);
+                const safeText = this.escapeHtml(text);
+                return `<a href="/thread/${safeTid}" class="quote-reply-link" title="View thread">${safeText}</a>`;
+            });
+
+            // Parse "Reply[/pid] [b]Post by [uid]...[/uid] (date):[/b]" pattern in quote (same format as outside)
+            if (/\[pid=.*?\[b\]Post by/.test(quoteParsed)) {
+                console.log('[DEBUG] Found Reply pattern in quote block');
+            }
+            quoteParsed = quoteParsed.replace(/\[pid=([^\]]+)\](.*?)\[\/pid\]\s+\[b\]Post by \[uid=(\d+)\](.*?)\[\/uid\]\s*\(([^)]+)\):\[\/b\]/g,
+                (m, pidData, pidText, uid, username, date) => {
+                    console.log('[DEBUG] Replacing Reply in quote:', {pidData, username, date});
+                    const parts = pidData.split(',');
+                    const pid = parts[0];
+                    const tid = parts[1] || '';
+                    const floor = parseInt(parts[2]) || 0;
+                    const page = Math.floor(floor / 20) + 1;
+                    const safeUsername = this.escapeHtml(username);
+                    const safeDate = this.escapeHtml(date);
+
+                    if (tid) {
+                        return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <a href="/thread/${this.escapeHtml(tid)}?page=${page}#post-${this.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                    }
+                    return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
+                }
+            );
+
+            // Parse remaining [pid] inside quote - USE BADGES like outside quote
+            quoteParsed = quoteParsed.replace(/\[pid=([^\]]+)\](.*?)\[\/pid\]/g, (m, pidData, text) => {
+                const parts = pidData.split(',');
+                const pid = parts[0];
+                const tid = parts[1] || '';
+                const floor = parseInt(parts[2]) || 0;
+                const page = Math.floor(floor / 20) + 1;
+                const safeText = this.escapeHtml(text);
+
+                if (tid) {
+                    return `<a href="/thread/${this.escapeHtml(tid)}?page=${page}#post-${this.escapeHtml(pid)}" class="badge bg-secondary text-decoration-none" title="Jump to floor #${floor}">${safeText}</a>`;
+                }
+                return `<span class="badge bg-secondary">${safeText}</span>`;
+            });
+
+            // Parse [uid] inside quote - USE BADGES like outside quote
+            quoteParsed = quoteParsed.replace(/\[uid=(\d+)\](.*?)\[\/uid\]/g, (m, uid, username) => {
+                const safeUsername = this.escapeHtml(username);
+                const safeUid = this.escapeHtml(uid);
+                return `<span class="badge bg-info text-dark" title="UID: ${safeUid}">${safeUsername}</span>`;
+            });
+
+            // Parse [b] tags inside quote
+            quoteParsed = quoteParsed.replace(/\[b\]([\s\S]*?)\[\/b\]/g, '<strong>$1</strong>');
+
+            return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 bg-light">${quoteParsed}</blockquote>`;
         });
 
         // Parse text formatting BBCode
@@ -310,33 +503,27 @@ const ThreadReader = {
             return `<details class="collapse-block"><summary>${summary}</summary><div class="collapse-content">${content}</div></details>`;
         });
 
-        // Parse [quote] tags to blockquote (with XSS protection)
-        parsed = parsed.replace(/\[quote\]([\s\S]*?)\[\/quote\]/g, (match, quoteContent) => {
-            return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 text-muted">${quoteContent}</blockquote>`;
-        });
-
-        // Parse reply to post: [pid=845602903,45452212,1]Reply[/pid]
+        // Parse remaining [pid] tags (outside quote/reply-to)
         // Format: [pid=pid,tid,floor]text[/pid]
         parsed = parsed.replace(/\[pid=([^\]]+)\](.*?)\[\/pid\]/g, (match, pidData, text) => {
             const parts = pidData.split(',');
             const pid = parts[0];
             const tid = parts[1] || '';
-            const floor = parts[2] || '';
+            const floor = parseInt(parts[2]) || 0;
+            const page = Math.floor(floor / 20) + 1;
             const safeText = this.escapeHtml(text);
 
             if (tid) {
-                return `<a href="/thread/${this.escapeHtml(tid)}#post-${this.escapeHtml(pid)}" class="reply-link" title="Jump to floor #${this.escapeHtml(floor)}">
-                    <i class="bi bi-reply-fill"></i> ${safeText}
-                </a>`;
+                return `<a href="/thread/${this.escapeHtml(tid)}?page=${page}#post-${this.escapeHtml(pid)}" class="badge bg-secondary text-decoration-none" title="Jump to floor #${floor}">${safeText}</a>`;
             }
-            return `<span class="reply-link"><i class="bi bi-reply-fill"></i> ${safeText}</span>`;
+            return `<span class="badge bg-secondary">${safeText}</span>`;
         });
 
-        // Parse user mention: [uid=43009512]username[/uid]
+        // Parse remaining [uid] tags (outside quote/reply-to)
         parsed = parsed.replace(/\[uid=(\d+)\](.*?)\[\/uid\]/g, (match, uid, username) => {
             const safeUsername = this.escapeHtml(username);
             const safeUid = this.escapeHtml(uid);
-            return `<span class="user-mention" title="UID: ${safeUid}"><i class="bi bi-at"></i>${safeUsername}</span>`;
+            return `<span class="badge bg-info text-dark" title="UID: ${safeUid}">${safeUsername}</span>`;
         });
 
         // Parse [url] tags: [url]link[/url] or [url=link]text[/url]

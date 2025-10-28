@@ -1,0 +1,277 @@
+.hover-shadow {
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.hover-shadow:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+.card-title a:hover {
+    color: #0d6efd !important;
+}
+.thread-thumbnail {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+@media (max-width: 768px) {
+    .thread-thumbnail {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+.hover-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+}
+
+/* Breadcrumb styling */
+.breadcrumb {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    font-size: 1.2rem;
+    color: #6c757d;
+}
+.breadcrumb-item a {
+    color: #0d6efd;
+    text-decoration: none;
+}
+.breadcrumb-item a:hover {
+    color: #0a58ca;
+    text-decoration: underline;
+}
+.breadcrumb-item.active {
+    color: #6c757d;
+}
+/* Loading placeholder */
+.placeholder-glow .placeholder {
+    background-color: #dee2e6;
+}
+/* Pagination styling */
+#pagination-container .pagination {
+    margin-bottom: 0;
+}
+#pagination-container .page-link {
+    color: #0d6efd;
+    text-decoration: none;
+}
+#pagination-container .page-link:hover {
+    color: #0a58ca;
+    background-color: #e9ecef;
+}
+#pagination-container .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+#pagination-container .page-item.active .page-link:hover {
+    background-color: #0a58ca;
+    border-color: #0a58ca;
+    color: #fff;
+}
+#pagination-container .page-item.disabled .page-link {
+    cursor: not-allowed;
+    color: #6c757d;
+}
+#pagination-container .page-item.disabled .page-link:hover {
+    color: #6c757d;
+    background-color: transparent;
+}
+/* Post card styles */
+.post-card {
+    transition: box-shadow 0.3s ease;
+    scroll-margin-top: 80px; /* For anchor links with fixed header */
+}
+.post-card:hover {
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+.post-card:target {
+    animation: highlight-post 2s ease;
+}
+@keyframes highlight-post {
+    0% { background-color: #fff3cd; }
+    100% { background-color: transparent; }
+}
+.post-content {
+    line-height: 1.7;
+    word-wrap: break-word;
+}
+.post-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+/* Emoticon styling */
+.post-content img.emoticon {
+    display: inline-block;
+    width: auto;
+    height: auto;
+    max-height: none;
+    margin: 0 2px;
+    vertical-align: middle;
+    border-radius: 0;
+}
+.post-content blockquote {
+    font-size: 0.95rem;
+    background-color: #f8f9fa;
+}
+/* Reply to header styling */
+.post-content .reply-to-header {
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    background-color: #f8f9fa;
+    border-left: 3px solid #0d6efd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+.post-content .reply-to-header i {
+    color: #0d6efd;
+}
+/* Quote styling */
+.post-content blockquote .quote-reply-link {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 500;
+}
+.post-content blockquote .quote-reply-link:hover {
+    text-decoration: underline;
+}
+.post-content blockquote .quote-author {
+    font-weight: 600;
+    color: #495057;
+}
+.post-content .quote-reply-link {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 500;
+}
+.post-content .quote-reply-link:hover {
+    text-decoration: underline;
+}
+.post-content .quote-author {
+    font-weight: 600;
+    color: #495057;
+}
+/* Collapse block styling */
+.post-content .collapse-block {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0;
+    margin: 10px 0;
+    background-color: #f8f9fa;
+}
+.post-content .collapse-block summary {
+    cursor: pointer;
+    padding: 10px 15px;
+    font-weight: 500;
+    background-color: #e9ecef;
+    border-radius: 6px 6px 0 0;
+    user-select: none;
+}
+.post-content .collapse-block summary:hover {
+    background-color: #dee2e6;
+}
+.post-content .collapse-block .collapse-content {
+    padding: 15px;
+}
+.post-content .collapse-block[open] summary {
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 6px 6px 0 0;
+}
+/* Badge styling */
+.post-content .badge {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+    margin: 0 2px;
+    vertical-align: baseline;
+}
+.post-content .badge:hover {
+    opacity: 0.85;
+    text-decoration: none;
+}
+.post-content a.badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+.post-content a.badge.bg-info {
+    background-color: #0dcaf0 !important;
+    color: #000 !important;
+}
+.post-content iframe {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+.original-post {
+    border-left: 4px solid #0d6efd;
+    background-color: #f8f9fa;
+}
+.post-author {
+    font-weight: 600;
+    color: #0d6efd;
+}
+.post-floor {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+/* Vote info styling */
+.vote-info .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+.vote-info .badge i {
+    font-size: 0.7rem;
+}
+.post-card .vote-info {
+    white-space: nowrap;
+}
+/* Hot posts section */
+.hot-posts-section {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 2px solid #ff6b6b;
+}
+.hot-posts-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #e74c3c;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.hot-posts-header i {
+    font-size: 1.2rem;
+    animation: fire-flicker 1.5s ease-in-out infinite;
+}
+@keyframes fire-flicker {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+}
+.hot-post-card {
+    background: #fff;
+    border-left: 3px solid #ff6b6b;
+    box-shadow: 0 2px 4px rgba(255, 107, 107, 0.1);
+    transition: all 0.3s ease;
+}
+.hot-post-card:hover {
+    box-shadow: 0 4px 8px rgba(255, 107, 107, 0.2);
+    transform: translateX(4px);
+}
+.hot-post-card .post-content {
+    font-size: 0.95rem;
+}
+.hot-post-card .vote-info .badge {
+    font-size: 0.8rem;
+}

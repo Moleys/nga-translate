@@ -115,11 +115,7 @@ Flight::route('/search', function() {
     ]);
 });
 
-Flight::route('/about', function() {
-    Flight::render('about.latte', [
-        'title' => 'About'
-    ]);
-});
+
 
 // Start the application
 Flight::start();
