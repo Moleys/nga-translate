@@ -1,0 +1,44 @@
+{layout 'layout.latte'}
+
+{block content}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="mb-4">
+            <h1 class="display-5">{$title}</h1>
+            <p class="lead text-muted">Browse NGA Forums</p>
+        </div>
+
+        <div class="row g-4">
+            {foreach $forums as $forum}
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm hover-card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-chat-square-text text-primary"></i>
+                            {$forum['name']}
+                        </h5>
+                        <p class="card-text text-muted">{$forum['description']}</p>
+                        <a href="/forum/{$forum['id']}" class="btn btn-primary">
+                            View Threads <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                    <div class="card-footer bg-light">
+                        <small class="text-muted">Forum ID: {$forum['id']}</small>
+                    </div>
+                </div>
+            </div>
+            {/foreach}
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+}
+</style>
+{/block}
