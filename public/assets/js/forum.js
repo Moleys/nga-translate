@@ -109,6 +109,16 @@ const ForumApp = {
         let currentPage = 1;
         let attachPrefix = apiData.attachPrefix || '';
 
+        // Extract and display forum name (only on first load)
+        if (!append && apiData.forumname) {
+            document.getElementById('forum-name').textContent = apiData.forumname;
+        }
+
+        // Extract and display subforums (only on first load)
+        if (!append && apiData.result && apiData.result.subForum) {
+            this.renderSubforums(apiData.result.subForum);
+        }
+
         // Parse API response - Check top-level first!
         if (apiData.result && apiData.result.data) {
             // Object format: result.data = threads array
@@ -231,6 +241,42 @@ const ForumApp = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    renderSubforums(subForums) {
+        const container = document.getElementById('subforum-container');
+        const listContainer = document.getElementById('subforum-list');
+
+        // subForum is an object where each key is a subforum entry
+        // Each entry: {"0": fid, "1": name, "2": description, "id": fid, "name": name, ...}
+        const subforumArray = Object.values(subForums || {});
+
+        if (subforumArray.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const subforumItems = subforumArray.map(subforum => {
+            // Extract using both numeric indices and named properties as fallback
+            const fid = subforum['0'] || subforum.id;
+            const name = subforum['1'] || subforum.name || 'Unnamed Forum';
+            const description = subforum['2'] || subforum.info || '';
+
+            if (!fid) return ''; // Skip invalid entries
+
+            return `
+                <a href="/forum/${fid}" class="btn btn-outline-primary btn-sm" title="${this.escapeHtml(description)}">
+                    <i class="bi bi-folder"></i> ${this.escapeHtml(name)}
+                </a>
+            `;
+        }).filter(item => item).join(''); // Remove empty strings
+
+        if (subforumItems) {
+            listContainer.innerHTML = subforumItems;
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
     }
 };
 
