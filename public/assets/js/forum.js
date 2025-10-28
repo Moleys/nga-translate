@@ -3,7 +3,8 @@ const ForumApp = {
     currentFid: null,
     currentAct: 'list',
     loading: false,
-    totalPages: 1,
+    hasMorePages: true,
+    observer: null,
 
     init() {
         const forumPage = document.getElementById('forum-threads');
@@ -11,6 +12,7 @@ const ForumApp = {
             this.currentFid = forumPage.dataset.fid;
             this.loadThreads();
             this.attachFilterListeners();
+            this.setupInfiniteScroll();
         }
     },
 
@@ -28,20 +30,51 @@ const ForumApp = {
     changeFilter(act) {
         this.currentAct = act;
         this.currentPage = 1;
-        
+        this.hasMorePages = true;
+
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         document.querySelector(`[data-act="${act}"]`).classList.add('active');
-        
+
+        // Reset UI state
+        document.getElementById('threads-list').innerHTML = '';
+        document.getElementById('scroll-end').style.display = 'none';
+        document.getElementById('scroll-sentinel').style.display = 'block';
+
         this.loadThreads();
     },
 
-    async loadThreads() {
+    setupInfiniteScroll() {
+        const sentinel = document.getElementById('scroll-sentinel');
+
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && this.hasMorePages && !this.loading) {
+                    this.currentPage++;
+                    this.loadThreads(true); // true = append mode
+                }
+            });
+        }, {
+            rootMargin: '100px' // Trigger 100px before reaching sentinel
+        });
+
+        this.observer.observe(sentinel);
+    },
+
+    async loadThreads(append = false) {
         if (this.loading) return;
-        
+
         this.loading = true;
-        this.showLoading();
+
+        if (!append) {
+            this.showLoading();
+        } else {
+            // Show loading spinner inside sentinel
+            const sentinel = document.getElementById('scroll-sentinel');
+            sentinel.querySelector('.spinner-border').style.display = 'inline-block';
+            sentinel.querySelector('#sentinel-text').style.display = 'block';
+        }
 
         try {
             const url = `/api/forum/${this.currentFid}/threads?page=${this.currentPage}&act=${this.currentAct}`;
@@ -53,45 +86,62 @@ const ForumApp = {
             } else if (data.code !== 0) {
                 this.showError(data.msg || 'API Error');
             } else {
-                this.renderThreads(data);
+                this.renderThreads(data, append);
             }
         } catch (error) {
             this.showError(error.message);
         } finally {
             this.loading = false;
+            // Hide loading spinner
+            const sentinel = document.getElementById('scroll-sentinel');
+            if (sentinel) {
+                sentinel.querySelector('.spinner-border').style.display = 'none';
+                sentinel.querySelector('#sentinel-text').style.display = 'none';
+            }
         }
     },
 
-    renderThreads(apiData) {
+    renderThreads(apiData, append = false) {
         const container = document.getElementById('threads-list');
-        
+
         let threads = [];
         let totalPages = 1;
         let currentPage = 1;
         let attachPrefix = apiData.attachPrefix || '';
-        
-        // Check if result is array (hot/topped) or object (list)
-        if (Array.isArray(apiData.result)) {
-            // Hot/Topped filter returns array directly
-            threads = apiData.result;
-            totalPages = 1; // No pagination for hot/topped
-            currentPage = 1;
-        } else if (apiData.result && apiData.result.data) {
-            // List filter returns object with data array
+
+        // Parse API response - Check top-level first!
+        if (apiData.result && apiData.result.data) {
+            // Object format: result.data = threads array
             threads = apiData.result.data;
-            totalPages = apiData.result.totalPage || 1;
-            currentPage = apiData.result.currentPage || 1;
             attachPrefix = apiData.result.attachPrefix || attachPrefix;
+        } else if (Array.isArray(apiData.result)) {
+            // Array format: result = threads array
+            threads = apiData.result;
         }
-        
+
+        // Extract pagination from TOP LEVEL (not from result)
+        totalPages = apiData.totalPage || apiData.result?.totalPage || 1;
+        currentPage = apiData.currentPage || apiData.result?.currentPage || 1;
+
         if (!threads || threads.length === 0) {
-            container.innerHTML = '<div class="alert alert-warning">No threads found</div>';
-            this.updatePagination(1, 1);
+            if (!append) {
+                container.innerHTML = '<div class="alert alert-warning">No threads found</div>';
+            }
+            this.hasMorePages = false;
+            document.getElementById('scroll-end').style.display = 'block';
             return;
         }
 
-        this.totalPages = totalPages;
-        this.currentPage = currentPage;
+        // Check if we have more pages
+        this.hasMorePages = currentPage < totalPages;
+
+        if (!this.hasMorePages) {
+            document.getElementById('scroll-sentinel').style.display = 'none';
+            document.getElementById('scroll-end').style.display = 'block';
+        } else {
+            document.getElementById('scroll-sentinel').style.display = 'block';
+            document.getElementById('scroll-end').style.display = 'none';
+        }
 
         const threadItems = threads.map(thread => {
             const title = thread.subject || 'Untitled';
@@ -101,8 +151,7 @@ const ForumApp = {
             const tid = thread.tid;
             const postDate = thread.postdate ? new Date(thread.postdate * 1000).toLocaleString('vi-VN') : '';
             const lastPostDate = thread.lastpost ? new Date(thread.lastpost * 1000).toLocaleString('vi-VN') : '';
-            
-            // Get thumbnail if exists
+
             const hasAttachment = thread.attachs && thread.attachs.length > 0;
             const thumbnailUrl = hasAttachment ? attachPrefix + thread.attachs[0].attachurl : '';
 
@@ -112,7 +161,7 @@ const ForumApp = {
                         <div class="row">
                             ${hasAttachment ? `
                             <div class="col-auto">
-                                <img src="${thumbnailUrl}" alt="Thumbnail" class="thread-thumbnail" loading="lazy">
+                                <img src="https://wsrv.nl/?url=${thumbnailUrl}&w=100&h=100&fit=cover&a=attention" alt="Thumbnail" class="thread-thumbnail" loading="lazy">
                             </div>
                             ` : ''}
                             <div class="${hasAttachment ? 'col' : 'col-12'}">
@@ -148,8 +197,11 @@ const ForumApp = {
             `;
         }).join('');
 
-        container.innerHTML = threadItems;
-        this.updatePagination(this.currentPage, this.totalPages);
+        if (append) {
+            container.insertAdjacentHTML('beforeend', threadItems);
+        } else {
+            container.innerHTML = threadItems;
+        }
     },
 
     showLoading() {
@@ -179,86 +231,6 @@ const ForumApp = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
-    },
-
-    updatePagination(current, total) {
-        const paginationContainer = document.getElementById('pagination-container');
-        console.log('updatePagination called:', { current, total, containerFound: !!paginationContainer });
-        
-        if (!paginationContainer) {
-            console.error('pagination-container not found!');
-            return;
-        }
-
-        if (total <= 1) {
-            paginationContainer.innerHTML = '';
-            return;
-        }
-
-        const maxButtons = 7;
-        let startPage = Math.max(1, current - Math.floor(maxButtons / 2));
-        let endPage = Math.min(total, startPage + maxButtons - 1);
-        
-        if (endPage - startPage < maxButtons - 1) {
-            startPage = Math.max(1, endPage - maxButtons + 1);
-        }
-
-        let html = '<nav><ul class="pagination justify-content-center">';
-        
-        html += `
-            <li class="page-item ${current === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${current - 1}">&laquo; Prev</a>
-            </li>
-        `;
-        
-        if (startPage > 1) {
-            html += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
-            if (startPage > 2) {
-                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-            }
-        }
-        
-        for (let i = startPage; i <= endPage; i++) {
-            html += `
-                <li class="page-item ${i === current ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${i}">${i}</a>
-                </li>
-            `;
-        }
-        
-        if (endPage < total) {
-            if (endPage < total - 1) {
-                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-            }
-            html += `<li class="page-item"><a class="page-link" href="#" data-page="${total}">${total}</a></li>`;
-        }
-        
-        html += `
-            <li class="page-item ${current === total ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${current + 1}">Next &raquo;</a>
-            </li>
-        `;
-        
-        html += '</ul></nav>';
-        html += `<div class="text-center text-muted small mt-2">Page ${current} of ${total}</div>`;
-        
-        paginationContainer.innerHTML = html;
-        
-        paginationContainer.querySelectorAll('a.page-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const page = parseInt(e.target.dataset.page);
-                if (page && page !== current && page >= 1 && page <= total) {
-                    this.goToPage(page);
-                }
-            });
-        });
-    },
-
-    goToPage(page) {
-        this.currentPage = page;
-        this.loadThreads();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 };
 

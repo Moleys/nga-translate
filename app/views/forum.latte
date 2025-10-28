@@ -38,8 +38,18 @@
                     <p class="mt-3">Loading threads...</p>
                 </div>
             </div>
-            
-            <div id="pagination-container" class="mt-4 mb-4"></div>
+
+            <!-- Sentinel must always be visible for IntersectionObserver -->
+            <div id="scroll-sentinel" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary" role="status" style="display: none;">
+                    <span class="visually-hidden">Loading more...</span>
+                </div>
+                <p class="mt-2 text-muted small" id="sentinel-text" style="display: none;">Loading more threads...</p>
+            </div>
+
+            <div id="scroll-end" class="text-center py-4 text-muted" style="display: none;">
+                <i class="bi bi-check-circle"></i> No more threads
+            </div>
         </div>
     </div>
 </div>
@@ -70,5 +80,5 @@
 }
 </style>
 
-<script src="/assets/js/forum.js?v=1a"></script>
+<script src="/assets/js/forum.js?v=10a"></script>
 {/block}
