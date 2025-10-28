@@ -176,7 +176,7 @@ const ForumApp = {
                             ` : ''}
                             <div class="${hasAttachment ? 'col' : 'col-12'}">
                                 <h5 class="card-title mb-3">
-                                    <a href="https://ngabbs.com/read.php?tid=${tid}" target="_blank" class="text-decoration-none text-dark">
+                                    <a href="/thread/${tid}" class="text-decoration-none text-dark">
                                         ${hasAttachment ? '<i class="bi bi-image text-muted me-2"></i>' : ''}${this.escapeHtml(title)}
                                     </a>
                                 </h5>

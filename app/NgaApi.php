@@ -79,4 +79,142 @@ class NgaApi
         $data = json_decode($response, true);
         return $data !== null ? $data : ['error' => 'Invalid JSON response'];
     }
+
+    public function searchThreads($keyword, $page = 1, $fid = '', $table = 7)
+    {
+        $t = time();
+        $signParams = $keyword;
+        $sign = $this->makeSign($signParams, $t);
+
+        $payload = [
+            'key' => $keyword,
+            'page' => (int)$page,
+            'table' => (int)$table, // 7 = thread search
+            'fid' => $fid,
+            'recommend' => '',
+            '__output' => 14,
+            '__inchst' => 'utf-8',
+            'app_id' => self::APP_ID,
+            'access_uid' => $this->uid,
+            'access_token' => $this->token,
+            't' => $t,
+            'sign' => $sign,
+        ];
+
+        $url = self::BASE_URL . "?__lib=subject&__act=search";
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+            'Referer: https://ngabbs.com/',
+            'User-Agent: Mozilla/5.0 (Linux; Android 10.0; POCOPHONE F1 Build/QKQ1.190828.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/141.0.7390.97 Mobile Safari/537.36',
+            'X-USER-AGENT: Nga_Official/90954(Xiaomi POCOPHONE F1;Android 10.0)',
+        ]);
+
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            return ['error' => $error];
+        }
+
+        $data = json_decode($response, true);
+        return $data !== null ? $data : ['error' => 'Invalid JSON response'];
+    }
+
+    public function searchForums($keyword, $page = 1)
+    {
+        $t = time();
+        $signParams = $keyword;
+        $sign = $this->makeSign($signParams, $t);
+
+        $payload = [
+            'key' => $keyword,
+            'page' => (int)$page,
+            '__output' => 14,
+            '__inchst' => 'utf-8',
+            'app_id' => self::APP_ID,
+            'access_uid' => $this->uid,
+            'access_token' => $this->token,
+            't' => $t,
+            'sign' => $sign,
+        ];
+
+        $url = self::BASE_URL . "?__lib=forum&__act=search";
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+            'Referer: https://ngabbs.com/',
+            'User-Agent: Mozilla/5.0 (Linux; Android 10.0; POCOPHONE F1 Build/QKQ1.190828.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/141.0.7390.97 Mobile Safari/537.36',
+            'X-USER-AGENT: Nga_Official/90954(Xiaomi POCOPHONE F1;Android 10.0)',
+        ]);
+
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            return ['error' => $error];
+        }
+
+        $data = json_decode($response, true);
+        return $data !== null ? $data : ['error' => 'Invalid JSON response'];
+    }
+
+    public function fetchThreadPosts($tid, $page = 1)
+    {
+        $t = time();
+        $signParams = (string)$tid;
+        $sign = $this->makeSign($signParams, $t);
+
+        $payload = [
+            'tid' => (string)$tid,
+            'page' => (int)$page,
+            '__output' => 14,
+            '__inchst' => 'utf-8',
+            'app_id' => self::APP_ID,
+            'access_uid' => $this->uid,
+            'access_token' => $this->token,
+            't' => $t,
+            'sign' => $sign,
+        ];
+
+        $url = self::BASE_URL . "?__lib=post&__act=list";
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+            'Referer: https://ngabbs.com/',
+            'User-Agent: Mozilla/5.0 (Linux; Android 10.0; POCOPHONE F1 Build/QKQ1.190828.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/141.0.7390.97 Mobile Safari/537.36',
+            'X-USER-AGENT: Nga_Official/90954(Xiaomi POCOPHONE F1;Android 10.0)',
+        ]);
+
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            return ['error' => $error];
+        }
+
+        $data = json_decode($response, true);
+        return $data !== null ? $data : ['error' => 'Invalid JSON response'];
+    }
 }
