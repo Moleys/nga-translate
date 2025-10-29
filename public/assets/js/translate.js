@@ -218,11 +218,11 @@ const TranslationUtil = {
         if (this.enabled) {
             btn.classList.remove('btn-outline-info');
             btn.classList.add('btn-info');
-            btn.title = 'Translation: ON (Click to show Chinese)';
+            btn.title = '';
         } else {
             btn.classList.remove('btn-info');
             btn.classList.add('btn-outline-info');
-            btn.title = 'Translation: OFF (Click to translate)';
+            btn.title = '';
         }
     },
 

@@ -21,10 +21,13 @@ const SearchApp = {
         }
 
         // Check if keyword is an NGA thread URL and redirect
-        const ngaThreadUrl = this.extractNgaThreadId(this.keyword);
-        if (ngaThreadUrl) {
-            console.log('[Search] Detected NGA thread URL, redirecting to:', `/thread/${ngaThreadUrl}`);
-            window.location.href = `/thread/${ngaThreadUrl}`;
+        const ngaThreadInfo = this.extractNgaThreadId(this.keyword);
+        if (ngaThreadInfo) {
+            const redirectUrl = ngaThreadInfo.page
+                ? `/thread/${ngaThreadInfo.tid}?page=${ngaThreadInfo.page}`
+                : `/thread/${ngaThreadInfo.tid}`;
+            console.log('[Search] Detected NGA thread URL, redirecting to:', redirectUrl);
+            window.location.href = redirectUrl;
             return;
         }
 
@@ -44,17 +47,26 @@ const SearchApp = {
         // - https://nga.178.com/read.php?tid=45453759
         // - https://nga.178.com/read.php?tid=45452628&_fp=2&rand=588
         // - http://bbs.nga.cn/read.php?rand=123&tid=45452628
+        // - https://ngabbs.com/read.php?tid=45445417&page=2
 
         // Match tid parameter anywhere in the query string
         const tidMatch = keyword.match(/[?&]tid=(\d+)/i);
+
+        // Match page parameter if exists
+        const pageMatch = keyword.match(/[?&]page=(\d+)/i);
 
         // Also verify it's an NGA domain
         const ngaDomainPattern = /https?:\/\/(?:ngabbs\.com|nga\.178\.com|bbs\.nga\.cn)\//i;
         const isDomainMatch = ngaDomainPattern.test(keyword);
 
         if (tidMatch && tidMatch[1] && isDomainMatch) {
-            console.log('[Search] Extracted tid from URL:', tidMatch[1]);
-            return tidMatch[1]; // Return the tid
+            const tid = tidMatch[1];
+            const page = pageMatch && pageMatch[1] ? pageMatch[1] : null;
+
+            console.log('[Search] Extracted tid from URL:', tid, 'page:', page);
+
+            // Return object with tid and optional page
+            return { tid, page };
         }
 
         return null;

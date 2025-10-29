@@ -150,13 +150,13 @@ function updateNavbarAuthStatus() {
     if (isLoggedIn) {
         authStatus.innerHTML = `
             <a class="nav-link" href="/login" title="User ID: ${auth.access_uid}">
-                <i class="bi bi-person-check-fill text-success"></i> Logged In
+                <i class="bi bi-person-check-fill text-success"></i> 
             </a>
         `;
     } else {
         authStatus.innerHTML = `
             <a class="nav-link" href="/login">
-                <i class="bi bi-person-x-fill text-warning"></i> Login
+                <i class="bi bi-person-x-fill text-warning"></i> 
             </a>
         `;
     }
