@@ -298,20 +298,20 @@ const ForumApp = {
                             <div class="${hasAttachment ? 'col' : 'col-12'}">
                                 <h5 class="card-title mb-3">
                                     <a href="/thread/${tid}" class="${titleClass}" ${titleStyle}>
-                                        ${hasAttachment ? '<i class="bi bi-image text-muted me-2"></i>' : ''}${this.escapeHtml(title)}
+                                        ${hasAttachment ? '<i class="bi bi-image text-muted me-2"></i>' : ''}${Utils.escapeHtml(title)}
                                     </a>
                                 </h5>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <small class="text-muted">
-                                            <i class="bi bi-person-circle"></i> <strong>Author:</strong> ${this.escapeHtml(author)}<br>
+                                            <i class="bi bi-person-circle"></i> <strong>Author:</strong> ${Utils.escapeHtml(author)}<br>
                                             ${postDate ? `<i class="bi bi-calendar3"></i> <strong>Posted:</strong> ${postDate}` : ''}
                                         </small>
                                     </div>
                                     <div class="col-md-6 text-md-end">
                                         <small class="text-muted">
                                             ${lastPostDate ? `<i class="bi bi-clock-history"></i> <strong>Last:</strong> ${lastPostDate}<br>` : ''}
-                                            <i class="bi bi-person"></i> ${this.escapeHtml(lastPoster)}
+                                            <i class="bi bi-person"></i> ${Utils.escapeHtml(lastPoster)}
                                         </small>
                                     </div>
                                 </div>
@@ -352,16 +352,10 @@ const ForumApp = {
         container.innerHTML = `
             <div class="alert alert-danger" role="alert">
                 <h5 class="alert-heading">Error</h5>
-                <p>${this.escapeHtml(message)}</p>
+                <p>${Utils.escapeHtml(message)}</p>
                 <button class="btn btn-sm btn-outline-danger" onclick="ForumApp.loadThreads()">Retry</button>
             </div>
         `;
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     },
 
     renderSubforums(subForums) {
@@ -386,8 +380,8 @@ const ForumApp = {
             if (!fid) return ''; // Skip invalid entries
 
             return `
-                <a href="/forum/${fid}" class="btn btn-outline-primary btn-sm" title="${this.escapeHtml(description)}">
-                    <i class="bi bi-folder"></i> ${this.escapeHtml(name)}
+                <a href="/forum/${fid}" class="btn btn-outline-primary btn-sm" title="${Utils.escapeHtml(description)}">
+                    <i class="bi bi-folder"></i> ${Utils.escapeHtml(name)}
                 </a>
             `;
         }).filter(item => item).join(''); // Remove empty strings

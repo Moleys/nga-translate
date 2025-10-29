@@ -170,7 +170,7 @@ const ForumPage = {
             html += `
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0"><i class="bi bi-folder2-open"></i> ${this.escapeHtml(category.category)}</h4>
+                        <h4 class="mb-0"><i class="bi bi-folder2-open"></i> ${Utils.escapeHtml(category.category)}</h4>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -183,19 +183,19 @@ const ForumPage = {
                 html += `
                     <div class="col-md-6 col-lg-4">
                         <div class="forum-item d-flex align-items-center p-3 border rounded hover-shadow">
-                            <img src="https://wsrv.nl/?url=${forum.avatar}" alt="${this.escapeHtml(forum.name)}" class="forum-avatar me-3" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22%3E%3Crect fill=%22%23ddd%22 width=%2250%22 height=%2250%22/%3E%3C/svg%3E'">
+                            <img src="https://wsrv.nl/?url=${forum.avatar}" alt="${Utils.escapeHtml(forum.name)}" class="forum-avatar me-3" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22%3E%3Crect fill=%22%23ddd%22 width=%2250%22 height=%2250%22/%3E%3C/svg%3E'">
                             <div class="flex-grow-1">
                                 <h6 class="mb-1">
                                     <a href="/forum/${forum.fid}" class="text-decoration-none text-dark fw-bold">
-                                        ${this.escapeHtml(forum.name)}
+                                        ${Utils.escapeHtml(forum.name)}
                                     </a>
                                 </h6>
-                                <small class="text-muted">${this.escapeHtml(forum.subject)}</small>
+                                <small class="text-muted">${Utils.escapeHtml(forum.subject)}</small>
                             </div>
                             <button class="btn btn-link p-0 ms-2 favorite-btn"
                                     data-fid="${forum.fid}"
-                                    data-name="${this.escapeHtml(forum.name)}"
-                                    data-subject="${this.escapeHtml(forum.subject)}"
+                                    data-name="${Utils.escapeHtml(forum.name)}"
+                                    data-subject="${Utils.escapeHtml(forum.subject)}"
                                     data-avatar="${forum.avatar}"
                                     title="${isFavorited ? 'Remove favorite' : 'Add favorite'}">
                                 <i class="bi ${favoriteClass} fs-5"></i>
@@ -227,12 +227,6 @@ const ForumPage = {
                 this.toggleFavorite(forum);
             });
         });
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

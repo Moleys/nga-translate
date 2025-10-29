@@ -116,7 +116,7 @@ const LoginPage = {
             statusDiv.innerHTML = `
                 <i class="bi bi-check-circle-fill"></i> <strong>Logged in</strong>
                 <div class="small mt-1">
-                    User ID: <code>${this.escapeHtml(auth.access_uid)}</code><br>
+                    User ID: <code>${Utils.escapeHtml(auth.access_uid)}</code><br>
                     Token: <code>${this.maskToken(auth.access_token)}</code><br>
                     Saved: ${savedDate}
                 </div>
@@ -143,12 +143,6 @@ const LoginPage = {
         if (!token) return '';
         if (token.length <= 8) return token;
         return token.substring(0, 6) + '...' + token.substring(token.length - 6);
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

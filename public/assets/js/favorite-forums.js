@@ -147,17 +147,17 @@ const FavoritesPage = {
                 <div class="col-md-6 col-lg-4">
                     <div class="card h-100 hover-shadow">
                         <div class="card-body d-flex align-items-start">
-                            <img src="https://wsrv.nl/?url=${this.escapeHtml(forum.avatar)}"
-                                 alt="${this.escapeHtml(forum.name)}"
+                            <img src="https://wsrv.nl/?url=${Utils.escapeHtml(forum.avatar)}"
+                                 alt="${Utils.escapeHtml(forum.name)}"
                                  class="forum-avatar me-3"
                                  onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22%3E%3Crect fill=%22%23ddd%22 width=%2250%22 height=%2250%22/%3E%3C/svg%3E'">
                             <div class="flex-grow-1">
                                 <h6 class="mb-1">
-                                    <a href="/forum/${this.escapeHtml(forum.fid)}" class="text-decoration-none text-dark fw-bold">
-                                        ${this.escapeHtml(forum.name)}
+                                    <a href="/forum/${Utils.escapeHtml(forum.fid)}" class="text-decoration-none text-dark fw-bold">
+                                        ${Utils.escapeHtml(forum.name)}
                                     </a>
                                 </h6>
-                                <small class="text-muted d-block mb-2">${this.escapeHtml(forum.subject)}</small>
+                                <small class="text-muted d-block mb-2">${Utils.escapeHtml(forum.subject)}</small>
                                 <div class="btn-group btn-group-sm" role="group">
                                     <button class="btn btn-outline-secondary move-up-btn"
                                             data-index="${index}"
@@ -301,13 +301,13 @@ const FavoritesPage = {
             const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
 
             html += `
-                <a href="/thread/${this.escapeHtml(thread.tid)}" class="list-group-item list-group-item-action">
+                <a href="/thread/${Utils.escapeHtml(thread.tid)}" class="list-group-item list-group-item-action">
                     <div class="d-flex w-100 justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <h6 class="mb-1" ${titleStyle}>${this.escapeHtml(thread.subject)}</h6>
+                            <h6 class="mb-1" ${titleStyle}>${Utils.escapeHtml(thread.subject)}</h6>
                             <small class="text-muted">
-                                <i class="bi bi-person"></i> ${this.escapeHtml(thread.author)}
-                                ${thread.forumName ? `<span class="mx-1">•</span><i class="bi bi-folder"></i> ${this.escapeHtml(thread.forumName)}` : ''}
+                                <i class="bi bi-person"></i> ${Utils.escapeHtml(thread.author)}
+                                ${thread.forumName ? `<span class="mx-1">•</span><i class="bi bi-folder"></i> ${Utils.escapeHtml(thread.forumName)}` : ''}
                             </small>
                         </div>
                         <small class="text-muted ms-2">${timeAgo}</small>
@@ -334,12 +334,6 @@ const FavoritesPage = {
         if (days < 7) return `${days}d ago`;
 
         return new Date(timestamp).toLocaleDateString();
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

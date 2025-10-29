@@ -152,14 +152,14 @@ const BookmarksPage = {
                             <div class="d-flex align-items-center mb-2">
                                 <i class="bi bi-bookmark-fill text-warning me-2"></i>
                                 <h5 class="mb-0 flex-grow-1">
-                                    <a href="/thread/${this.escapeHtml(bookmark.tid)}" class="${titleClass}" ${titleStyle}>
-                                        ${this.escapeHtml(bookmark.subject)}
+                                    <a href="/thread/${Utils.escapeHtml(bookmark.tid)}" class="${titleClass}" ${titleStyle}>
+                                        ${Utils.escapeHtml(bookmark.subject)}
                                     </a>
                                 </h5>
                             </div>
                             <p class="mb-1 text-muted">
-                                <i class="bi bi-person-fill"></i> ${this.escapeHtml(bookmark.author)}
-                                ${bookmark.forumName ? `<span class="mx-2">•</span><i class="bi bi-folder-fill"></i> ${this.escapeHtml(bookmark.forumName)}` : ''}
+                                <i class="bi bi-person-fill"></i> ${Utils.escapeHtml(bookmark.author)}
+                                ${bookmark.forumName ? `<span class="mx-2">•</span><i class="bi bi-folder-fill"></i> ${Utils.escapeHtml(bookmark.forumName)}` : ''}
                             </p>
                             <small class="text-muted">
                                 <i class="bi bi-clock"></i> Bookmarked ${timeAgo}
@@ -169,7 +169,7 @@ const BookmarksPage = {
                         </div>
                         <div class="ms-3">
                             <button class="btn btn-outline-danger btn-sm remove-bookmark-btn"
-                                    data-tid="${this.escapeHtml(bookmark.tid)}"
+                                    data-tid="${Utils.escapeHtml(bookmark.tid)}"
                                     title="Remove bookmark">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -209,12 +209,6 @@ const BookmarksPage = {
         if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
 
         return new Date(timestamp).toLocaleDateString();
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

@@ -136,16 +136,16 @@ const HistoryPage = {
             const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
 
             html += `
-                <a href="/thread/${this.escapeHtml(thread.tid)}" class="list-group-item list-group-item-action">
+                <a href="/thread/${Utils.escapeHtml(thread.tid)}" class="list-group-item list-group-item-action">
                     <div class="d-flex w-100 justify-content-between align-items-start">
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center mb-2">
-                                <h5 class="mb-0 flex-grow-1" ${titleStyle}>${this.escapeHtml(thread.subject)}</h5>
+                                <h5 class="mb-0 flex-grow-1" ${titleStyle}>${Utils.escapeHtml(thread.subject)}</h5>
                                 <span class="badge bg-secondary ms-2">#${index + 1}</span>
                             </div>
                             <p class="mb-1 text-muted">
-                                <i class="bi bi-person-fill"></i> ${this.escapeHtml(thread.author)}
-                                ${thread.forumName ? `<span class="mx-2">•</span><i class="bi bi-folder-fill"></i> ${this.escapeHtml(thread.forumName)}` : ''}
+                                <i class="bi bi-person-fill"></i> ${Utils.escapeHtml(thread.author)}
+                                ${thread.forumName ? `<span class="mx-2">•</span><i class="bi bi-folder-fill"></i> ${Utils.escapeHtml(thread.forumName)}` : ''}
                             </p>
                             <small class="text-muted">
                                 <i class="bi bi-clock"></i> ${timeAgo}
@@ -177,12 +177,6 @@ const HistoryPage = {
         if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
 
         return new Date(timestamp).toLocaleDateString();
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

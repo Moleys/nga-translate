@@ -337,7 +337,7 @@ const ThreadReader = {
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div class="flex-grow-1">
-                                <span class="post-author">${this.escapeHtml(author)}</span>
+                                <span class="post-author">${Utils.escapeHtml(author)}</span>
                                 ${isOriginalPost ? '<span class="badge bg-primary ms-2">OP</span>' : ''}
                                 <br>
                                 <small class="text-muted">
@@ -395,7 +395,7 @@ const ThreadReader = {
                     <div class="card-body py-3">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div class="flex-grow-1">
-                                <span class="post-author">${this.escapeHtml(author)}</span>
+                                <span class="post-author">${Utils.escapeHtml(author)}</span>
                                 <span class="badge bg-danger ms-2">Hot</span>
                                 <span class="badge bg-light text-dark ms-1">#${floor}</span>
                                 <br>
@@ -431,7 +431,7 @@ const ThreadReader = {
         document.title = `${subject} - NGA Forums`;
 
         document.getElementById('thread-info').innerHTML = `
-            <i class="bi bi-person-circle"></i> <strong>${this.escapeHtml(author)}</strong>
+            <i class="bi bi-person-circle"></i> <strong>${Utils.escapeHtml(author)}</strong>
             ${postDate ? ` • <i class="bi bi-calendar3"></i> ${postDate}` : ''}
             • <i class="bi bi-chat-left-text"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
         `;
@@ -446,7 +446,7 @@ const ThreadReader = {
 
         const breadcrumbHtml = `
             <li class="breadcrumb-item"><a href="/"><i class="bi bi-house-door"></i> Home</a></li>
-            ${fid ? `<li class="breadcrumb-item active" aria-current="page"><a href="/forum/${fid}">${this.escapeHtml(forumName)}</a></li>` : ''}
+            ${fid ? `<li class="breadcrumb-item active" aria-current="page"><a href="/forum/${fid}">${Utils.escapeHtml(forumName)}</a></li>` : ''}
         `;
 
         breadcrumb.innerHTML = breadcrumbHtml;
@@ -575,7 +575,7 @@ const ThreadReader = {
             if (typeof getEmoticonUrl === 'function') {
                 const emoticonUrl = getEmoticonUrl(name, category);
                 if (emoticonUrl) {
-                    return `<img src="${emoticonUrl}" alt="${this.escapeHtml(name)}" class="emoticon" loading="lazy" title="${this.escapeHtml(name)}">`;
+                    return `<img src="${emoticonUrl}" alt="${Utils.escapeHtml(name)}" class="emoticon" loading="lazy" title="${Utils.escapeHtml(name)}">`;
                 }
             }
             return match;
@@ -595,11 +595,11 @@ const ThreadReader = {
                 const tid = parts[1] || '';
                 const floor = parseInt(parts[2]) || 0;
                 const page = Math.floor(floor / 20) + 1;
-                const safeUsername = this.escapeHtml(username);
-                const safeDate = this.escapeHtml(date);
+                const safeUsername = Utils.escapeHtml(username);
+                const safeDate = Utils.escapeHtml(date);
 
                 if (tid) {
-                    return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <a href="/thread/${this.escapeHtml(tid)}?page=${page}#post-${this.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                    return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
                 }
                 return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
             }
@@ -611,8 +611,8 @@ const ThreadReader = {
 
             // Parse [tid] inside quote for topic link
             quoteParsed = quoteParsed.replace(/\[tid=([^\]]+)\](.*?)\[\/tid\]/g, (m, tid, text) => {
-                const safeTid = this.escapeHtml(tid);
-                const safeText = this.escapeHtml(text);
+                const safeTid = Utils.escapeHtml(tid);
+                const safeText = Utils.escapeHtml(text);
                 return `<a href="/thread/${safeTid}" class="quote-reply-link" title="View thread">${safeText}</a>`;
             });
 
@@ -628,11 +628,11 @@ const ThreadReader = {
                     const tid = parts[1] || '';
                     const floor = parseInt(parts[2]) || 0;
                     const page = Math.floor(floor / 20) + 1;
-                    const safeUsername = this.escapeHtml(username);
-                    const safeDate = this.escapeHtml(date);
+                    const safeUsername = Utils.escapeHtml(username);
+                    const safeDate = Utils.escapeHtml(date);
 
                     if (tid) {
-                        return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <a href="/thread/${this.escapeHtml(tid)}?page=${page}#post-${this.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                        return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
                     }
                     return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
                 }
@@ -645,18 +645,18 @@ const ThreadReader = {
                 const tid = parts[1] || '';
                 const floor = parseInt(parts[2]) || 0;
                 const page = Math.floor(floor / 20) + 1;
-                const safeText = this.escapeHtml(text);
+                const safeText = Utils.escapeHtml(text);
 
                 if (tid) {
-                    return `<a href="/thread/${this.escapeHtml(tid)}?page=${page}#post-${this.escapeHtml(pid)}" class="badge bg-secondary text-decoration-none" title="Jump to floor #${floor}">${safeText}</a>`;
+                    return `<a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="badge bg-secondary text-decoration-none" title="Jump to floor #${floor}">${safeText}</a>`;
                 }
                 return `<span class="badge bg-secondary">${safeText}</span>`;
             });
 
             // Parse [uid] inside quote - USE BADGES like outside quote
             quoteParsed = quoteParsed.replace(/\[uid=(\d+)\](.*?)\[\/uid\]/g, (m, uid, username) => {
-                const safeUsername = this.escapeHtml(username);
-                const safeUid = this.escapeHtml(uid);
+                const safeUsername = Utils.escapeHtml(username);
+                const safeUid = Utils.escapeHtml(uid);
                 return `<span class="badge bg-info text-dark" title="UID: ${safeUid}">${safeUsername}</span>`;
             });
 
@@ -681,25 +681,25 @@ const ThreadReader = {
 
         // Color: [color=red]...[/color]
         parsed = parsed.replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]/g, (match, color, text) => {
-            const safeColor = this.escapeHtml(color);
+            const safeColor = Utils.sanitizeColor(color);
             return `<span style="color:${safeColor}">${text}</span>`;
         });
 
         // Size: [size=14px]...[/size]
         parsed = parsed.replace(/\[size=([^\]]+)\]([\s\S]*?)\[\/size\]/g, (match, size, text) => {
-            const safeSize = this.escapeHtml(size);
+            const safeSize = Utils.sanitizeSize(size);
             return `<span style="font-size:${safeSize}">${text}</span>`;
         });
 
         // Align: [align=center]...[/align]
         parsed = parsed.replace(/\[align=([^\]]+)\]([\s\S]*?)\[\/align\]/g, (match, align, text) => {
-            const safeAlign = this.escapeHtml(align);
+            const safeAlign = Utils.sanitizeAlign(align);
             return `<div style="text-align:${safeAlign}">${text}</div>`;
         });
 
         // Collapse: [collapse]...[/collapse] or [collapse=title]...[/collapse]
         parsed = parsed.replace(/\[collapse(?:=([^\]]+))?\]([\s\S]*?)\[\/collapse\]/g, (match, title, content) => {
-            const summary = title ? this.escapeHtml(title) : '已折叠，点击展开';
+            const summary = title ? Utils.escapeHtml(title) : '已折叠，点击展开';
             return `<details class="collapse-block"><summary>${summary}</summary><div class="collapse-content">${content}</div></details>`;
         });
 
@@ -711,29 +711,29 @@ const ThreadReader = {
             const tid = parts[1] || '';
             const floor = parseInt(parts[2]) || 0;
             const page = Math.floor(floor / 20) + 1;
-            const safeText = this.escapeHtml(text);
+            const safeText = Utils.escapeHtml(text);
 
             if (tid) {
-                return `<a href="/thread/${this.escapeHtml(tid)}?page=${page}#post-${this.escapeHtml(pid)}" class="badge bg-secondary text-decoration-none" title="Jump to floor #${floor}">${safeText}</a>`;
+                return `<a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="badge bg-secondary text-decoration-none" title="Jump to floor #${floor}">${safeText}</a>`;
             }
             return `<span class="badge bg-secondary">${safeText}</span>`;
         });
 
         // Parse remaining [uid] tags (outside quote/reply-to)
         parsed = parsed.replace(/\[uid=(\d+)\](.*?)\[\/uid\]/g, (match, uid, username) => {
-            const safeUsername = this.escapeHtml(username);
-            const safeUid = this.escapeHtml(uid);
+            const safeUsername = Utils.escapeHtml(username);
+            const safeUid = Utils.escapeHtml(uid);
             return `<span class="badge bg-info text-dark" title="UID: ${safeUid}">${safeUsername}</span>`;
         });
 
         // Parse [url] tags: [url]link[/url] or [url=link]text[/url]
         parsed = parsed.replace(/\[url=([^\]]+)\](.*?)\[\/url\]/g, (match, url, text) => {
-            const safeUrl = this.escapeHtml(url);
-            const safeText = this.escapeHtml(text);
+            const safeUrl = Utils.escapeHtml(url);
+            const safeText = Utils.escapeHtml(text);
             return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeText}</a>`;
         });
         parsed = parsed.replace(/\[url\](.*?)\[\/url\]/g, (match, url) => {
-            const safeUrl = this.escapeHtml(url);
+            const safeUrl = Utils.escapeHtml(url);
             return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
         });
 
@@ -751,14 +751,14 @@ const ThreadReader = {
             if (cleanUrl.includes('bilibili.com')) {
                 const bvMatch = cleanUrl.match(/\/video\/(BV[a-zA-Z0-9]+)/);
                 if (bvMatch) {
-                    const bvid = this.escapeHtml(bvMatch[1]);
+                    const bvid = Utils.escapeHtml(bvMatch[1]);
                     return `<div class="ratio ratio-16x9 my-3">
                         <iframe src="https://player.bilibili.com/player.html?bvid=${bvid}&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
                     </div>`;
                 }
             }
             // Fallback: show link
-            const safeUrl = this.escapeHtml(cleanUrl);
+            const safeUrl = Utils.escapeHtml(cleanUrl);
             return `<a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-primary my-2"><i class="bi bi-play-circle"></i> View Video</a>`;
         });
 
@@ -772,7 +772,7 @@ const ThreadReader = {
             }
             // Convert URLs in text content only
             return part.replace(/(https?:\/\/[^\s<>"]+)/g, (url) => {
-                const safeUrl = this.escapeHtml(url);
+                const safeUrl = Utils.escapeHtml(url);
                 return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
             });
         }).join('');
@@ -800,7 +800,7 @@ const ThreadReader = {
         container.innerHTML = `
             <div class="alert alert-danger" role="alert">
                 <h5 class="alert-heading">Error</h5>
-                <p>${this.escapeHtml(message)}</p>
+                <p>${Utils.escapeHtml(message)}</p>
                 <button class="btn btn-sm btn-outline-danger" onclick="ThreadReader.loadPosts()">Retry</button>
             </div>
         `;
@@ -928,12 +928,6 @@ const ThreadReader = {
         setTimeout(() => {
             toast.remove();
         }, 2000);
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

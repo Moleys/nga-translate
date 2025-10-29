@@ -248,11 +248,11 @@ const SearchApp = {
                             <div class="${hasAttachment ? 'col' : 'col-12'}">
                                 <h5 class="card-title mb-2">
                                     <a href="/thread/${tid}" class="${titleClass}" ${titleStyle}>
-                                        ${hasAttachment ? '<i class="bi bi-image text-muted me-2"></i>' : ''}${this.escapeHtml(title)}
+                                        ${hasAttachment ? '<i class="bi bi-image text-muted me-2"></i>' : ''}${Utils.escapeHtml(title)}
                                     </a>
                                 </h5>
                                 <p class="text-muted small mb-2">
-                                    <i class="bi bi-person-circle"></i> ${this.escapeHtml(author)}
+                                    <i class="bi bi-person-circle"></i> ${Utils.escapeHtml(author)}
                                     ${postDate ? ` • <i class="bi bi-calendar3"></i> ${postDate}` : ''}
                                     ${fid ? ` • <a href="/forum/${fid}" class="text-decoration-none">View Forum</a>` : ''}
                                 </p>
@@ -319,10 +319,10 @@ const SearchApp = {
                     <div class="card-body">
                         <h5 class="card-title mb-2">
                             <a href="/forum/${fid}" class="text-decoration-none text-dark">
-                                <i class="bi bi-folder"></i> ${this.escapeHtml(name)}
+                                <i class="bi bi-folder"></i> ${Utils.escapeHtml(name)}
                             </a>
                         </h5>
-                        ${description ? `<p class="text-muted small mb-0">${this.escapeHtml(description)}</p>` : ''}
+                        ${description ? `<p class="text-muted small mb-0">${Utils.escapeHtml(description)}</p>` : ''}
                     </div>
                 </div>
             `;
@@ -339,15 +339,9 @@ const SearchApp = {
         container.innerHTML = `
             <div class="alert alert-danger" role="alert">
                 <h5 class="alert-heading">Error</h5>
-                <p>${this.escapeHtml(message)}</p>
+                <p>${Utils.escapeHtml(message)}</p>
             </div>
         `;
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 
