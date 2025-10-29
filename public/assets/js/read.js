@@ -114,8 +114,8 @@ const ThreadReader = {
         let attachPrefix = apiData.attachPrefix || '';
         let hotPosts = apiData.hot_post || [];
 
-        // Extract thread info on first page load
-        if (this.currentPage === 1) {
+        // Extract thread info if not yet loaded or on first page
+        if (!this.threadInfo || this.currentPage === 1) {
             this.threadInfo = {
                 subject: apiData.tsubject || 'Untitled Thread',
                 author: apiData.tauthor || 'Unknown',
@@ -126,6 +126,12 @@ const ThreadReader = {
             };
             this.updateThreadHeader(this.threadInfo);
             this.updateBreadcrumb(this.threadInfo);
+
+            // Save thread to history (only once per thread)
+            if (!this.threadInfo.historySaved) {
+                this.saveThreadToHistory();
+                this.threadInfo.historySaved = true;
+            }
         }
 
         // Parse posts - result is a direct array
@@ -604,6 +610,36 @@ const ThreadReader = {
                 <button class="btn btn-sm btn-outline-danger" onclick="ThreadReader.loadPosts()">Retry</button>
             </div>
         `;
+    },
+
+    saveThreadToHistory() {
+        // Load existing history
+        const stored = localStorage.getItem('nga_thread_history');
+        let history = stored ? JSON.parse(stored) : [];
+
+        // Check if thread already exists in history
+        const existingIndex = history.findIndex(item => item.tid === this.currentTid);
+        if (existingIndex >= 0) {
+            // Remove existing entry (we'll add it back at the beginning)
+            history.splice(existingIndex, 1);
+        }
+
+        // Add current thread to beginning of history
+        history.unshift({
+            tid: this.currentTid,
+            subject: this.threadInfo.subject,
+            author: this.threadInfo.author,
+            forumName: this.threadInfo.forumName,
+            timestamp: Date.now()
+        });
+
+        // Keep only the 60 most recent threads
+        if (history.length > 60) {
+            history = history.slice(0, 60);
+        }
+
+        // Save back to localStorage
+        localStorage.setItem('nga_thread_history', JSON.stringify(history));
     },
 
     escapeHtml(text) {

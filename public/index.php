@@ -15,15 +15,24 @@ Flight::map('render', function($template, $data = []) use ($latte) {
     $latte->render($templatePath, $data);
 });
 
-// Home - Forum list
+// Home - Favorite forums and thread history
 Flight::route('/', function() {
-    $forums = [
-        ['id' => 524, 'name' => 'Whirlpool Academy', 'description' => 'NGA Forum'],
-    ];
-    
     Flight::render('home.latte', [
-        'title' => 'NGA Forums',
-        'forums' => $forums
+        'title' => 'NGA Forums - Favorites'
+    ]);
+});
+
+// Forum list page - Browse all forums
+Flight::route('/forums', function() {
+    Flight::render('forum-list.latte', [
+        'title' => 'All Forums - NGA'
+    ]);
+});
+
+// Reading history page
+Flight::route('/history', function() {
+    Flight::render('history.latte', [
+        'title' => 'Reading History - NGA'
     ]);
 });
 

@@ -20,6 +20,14 @@ const SearchApp = {
             return;
         }
 
+        // Check if keyword is an NGA thread URL and redirect
+        const ngaThreadUrl = this.extractNgaThreadId(this.keyword);
+        if (ngaThreadUrl) {
+            console.log('[Search] Detected NGA thread URL, redirecting to:', `/thread/${ngaThreadUrl}`);
+            window.location.href = `/thread/${ngaThreadUrl}`;
+            return;
+        }
+
         // Setup tab switching
         this.setupTabs();
 
@@ -28,6 +36,28 @@ const SearchApp = {
 
         // Setup infinite scroll
         this.setupInfiniteScroll();
+    },
+
+    extractNgaThreadId(keyword) {
+        // Match NGA thread URLs with tid parameter at any position:
+        // - https://ngabbs.com/read.php?tid=45452628&rand=681
+        // - https://nga.178.com/read.php?tid=45453759
+        // - https://nga.178.com/read.php?tid=45452628&_fp=2&rand=588
+        // - http://bbs.nga.cn/read.php?rand=123&tid=45452628
+
+        // Match tid parameter anywhere in the query string
+        const tidMatch = keyword.match(/[?&]tid=(\d+)/i);
+
+        // Also verify it's an NGA domain
+        const ngaDomainPattern = /https?:\/\/(?:ngabbs\.com|nga\.178\.com|bbs\.nga\.cn)\//i;
+        const isDomainMatch = ngaDomainPattern.test(keyword);
+
+        if (tidMatch && tidMatch[1] && isDomainMatch) {
+            console.log('[Search] Extracted tid from URL:', tidMatch[1]);
+            return tidMatch[1]; // Return the tid
+        }
+
+        return null;
     },
 
     setupTabs() {

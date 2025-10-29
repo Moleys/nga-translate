@@ -1,0 +1,20 @@
+{layout 'layout.latte'}
+
+{block content}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="display-6">All Forums</h1>
+            <a href="/" class="btn btn-outline-primary">
+                <i class="bi bi-star-fill"></i> My Favorites
+            </a>
+        </div>
+
+        <!-- Forum Categories -->
+        <div id="forum-categories"></div>
+    </div>
+</div>
+
+<script src="/assets/js/forum-list.js"></script>
+<script src="/assets/js/forum-page.js?v=3"></script>
+{/block}
