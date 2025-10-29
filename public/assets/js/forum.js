@@ -86,7 +86,8 @@ const ForumApp = {
             } else if (data.code !== 0) {
                 this.showError(data.msg || 'API Error');
             } else {
-                this.renderThreads(data, append);
+                // Translate API data before rendering
+                await this.translateAndRender(data, append);
             }
         } catch (error) {
             this.showError(error.message);
@@ -101,6 +102,121 @@ const ForumApp = {
         }
     },
 
+    async translateAndRender(apiData, append = false) {
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderThreads(apiData, append);
+            return;
+        }
+
+        try {
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
+
+            // Forum name (only on first load)
+            if (!append && apiData.forumname) {
+                textMap.push({ type: 'forumname', index: textsToTranslate.length });
+                textsToTranslate.push(apiData.forumname);
+            }
+
+            // Subforums (only on first load)
+            if (!append && apiData.result && apiData.result.subForum) {
+                const subforumArray = Object.values(apiData.result.subForum || {});
+                subforumArray.forEach((subforum, idx) => {
+                    const name = subforum['1'] || subforum.name;
+                    const description = subforum['2'] || subforum.info || '';
+
+                    if (name) {
+                        textMap.push({ type: 'subforum_name', subforumIdx: idx, index: textsToTranslate.length });
+                        textsToTranslate.push(name);
+                    }
+                    if (description) {
+                        textMap.push({ type: 'subforum_desc', subforumIdx: idx, index: textsToTranslate.length });
+                        textsToTranslate.push(description);
+                    }
+                });
+            }
+
+            // Extract threads array
+            let threads = [];
+            if (apiData.result && apiData.result.data) {
+                threads = apiData.result.data;
+            } else if (Array.isArray(apiData.result)) {
+                threads = apiData.result;
+            }
+
+            // Thread titles
+            threads.forEach((thread, threadIdx) => {
+                if (thread.subject) {
+                    textMap.push({ type: 'thread_title', threadIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.subject);
+                }
+                if (thread.author) {
+                    textMap.push({ type: 'thread_author', threadIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.author);
+                }
+                if (thread.lastposter) {
+                    textMap.push({ type: 'thread_lastposter', threadIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.lastposter);
+                }
+            });
+
+            console.log(`[Translation] Translating ${textsToTranslate.length} forum texts...`);
+
+            // Translate all texts
+            const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+            if (translated && translated.length > 0) {
+                // Apply translations back to apiData
+                textMap.forEach(mapping => {
+                    const result = translated[mapping.index];
+                    let translatedText = result?.translations?.[0]?.text || textsToTranslate[mapping.index];
+
+                    // Format translated text
+                    translatedText = TranslationUtil.formatTranslatedText(translatedText);
+
+                    if (mapping.type === 'forumname') {
+                        apiData.forumname = translatedText;
+                    } else if (mapping.type === 'subforum_name') {
+                        const subforumArray = Object.values(apiData.result.subForum);
+                        const subforum = subforumArray[mapping.subforumIdx];
+                        if (subforum) {
+                            // Update both numeric and named properties
+                            subforum['1'] = translatedText;
+                            if (subforum.name !== undefined) subforum.name = translatedText;
+                        }
+                    } else if (mapping.type === 'subforum_desc') {
+                        const subforumArray = Object.values(apiData.result.subForum);
+                        const subforum = subforumArray[mapping.subforumIdx];
+                        if (subforum) {
+                            subforum['2'] = translatedText;
+                            if (subforum.info !== undefined) subforum.info = translatedText;
+                        }
+                    } else if (mapping.type === 'thread_title') {
+                        threads[mapping.threadIdx].subject = translatedText;
+                    } else if (mapping.type === 'thread_author') {
+                        threads[mapping.threadIdx].author = translatedText;
+                    } else if (mapping.type === 'thread_lastposter') {
+                        threads[mapping.threadIdx].lastposter = translatedText;
+                    }
+                });
+
+                console.log('[Translation] Forum translation complete!');
+            }
+        } catch (error) {
+            console.error('[Translation] Error during forum translation:', error);
+        }
+
+        // Update document title with translated forum name
+        if (!append && apiData.forumname) {
+            document.title = `${apiData.forumname} - NGA Forums`;
+        }
+
+        // Render with translated data
+        this.renderThreads(apiData, append);
+    },
+
     renderThreads(apiData, append = false) {
         const container = document.getElementById('threads-list');
 
@@ -112,6 +228,7 @@ const ForumApp = {
         // Extract and display forum name (only on first load)
         if (!append && apiData.forumname) {
             document.getElementById('forum-name').textContent = apiData.forumname;
+            document.title = `${apiData.forumname} - NGA Forums`;
         }
 
         // Extract and display subforums (only on first load)

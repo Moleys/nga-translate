@@ -30,12 +30,23 @@ const ForumPage = {
             // Remove favorite
             this.favorites.splice(index, 1);
         } else {
-            // Add favorite
+            // Find original forum data from forumList (not translated)
+            let originalForum = null;
+            if (typeof forumList !== 'undefined') {
+                forumList.forEach(category => {
+                    const found = category.forums.find(f => f.fid === forum.fid);
+                    if (found) {
+                        originalForum = found;
+                    }
+                });
+            }
+
+            // Add favorite with ORIGINAL Chinese text
             this.favorites.push({
                 fid: forum.fid,
-                name: forum.name,
-                subject: forum.subject,
-                avatar: forum.avatar
+                name: originalForum ? originalForum.name : forum.name,
+                subject: originalForum ? originalForum.subject : forum.subject,
+                avatar: originalForum ? originalForum.avatar : forum.avatar
             });
         }
 

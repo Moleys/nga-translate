@@ -8,9 +8,9 @@ const FavoritesPage = {
         this.loadFavorites();
         this.loadHistory();
 
-        // Render favorites and history
-        this.renderFavorites();
-        this.renderHistory();
+        // Render favorites with translation and history
+        this.translateAndRenderFavorites();
+        this.translateAndRenderHistory();
     },
 
     loadFavorites() {
@@ -35,7 +35,7 @@ const FavoritesPage = {
             this.favorites[index - 1] = temp;
 
             this.saveFavorites();
-            this.renderFavorites();
+            this.translateAndRenderFavorites();
         }
     },
 
@@ -47,7 +47,7 @@ const FavoritesPage = {
             this.favorites[index + 1] = temp;
 
             this.saveFavorites();
-            this.renderFavorites();
+            this.translateAndRenderFavorites();
         }
     },
 
@@ -56,16 +56,77 @@ const FavoritesPage = {
         this.favorites.splice(index, 1);
 
         this.saveFavorites();
-        this.renderFavorites();
+        this.translateAndRenderFavorites();
     },
 
-    renderFavorites() {
+    async translateAndRenderFavorites() {
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderFavorites();
+            return;
+        }
+
+        // Clone favorites to avoid modifying original
+        const translatedFavorites = JSON.parse(JSON.stringify(this.favorites));
+
+        try {
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
+
+            translatedFavorites.forEach((forum, idx) => {
+                if (forum.name) {
+                    textMap.push({ type: 'name', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(forum.name);
+                }
+                if (forum.subject) {
+                    textMap.push({ type: 'subject', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(forum.subject);
+                }
+            });
+
+            if (textsToTranslate.length > 0) {
+                console.log(`[Translation] Translating ${textsToTranslate.length} favorite forum texts...`);
+
+                // Translate all texts
+                const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+                if (translated && translated.length > 0) {
+                    // Apply translations
+                    textMap.forEach(mapping => {
+                        const result = translated[mapping.index];
+                        let translatedText = result?.translations?.[0]?.text || textsToTranslate[mapping.index];
+                        // Format translated text
+                        translatedText = TranslationUtil.formatTranslatedText(translatedText);
+
+                        if (mapping.type === 'name') {
+                            translatedFavorites[mapping.idx].name = translatedText;
+                        } else if (mapping.type === 'subject') {
+                            translatedFavorites[mapping.idx].subject = translatedText;
+                        }
+                    });
+
+                    console.log('[Translation] Favorite forums translation complete!');
+                }
+            }
+        } catch (error) {
+            console.error('[Translation] Error during favorites translation:', error);
+        }
+
+        // Render with translated data
+        this.renderFavorites(translatedFavorites);
+    },
+
+    renderFavorites(dataToRender) {
         const container = document.getElementById('favorite-forums');
         const emptyState = document.getElementById('empty-state');
 
         if (!container || !emptyState) return;
 
-        if (this.favorites.length === 0) {
+        // Use provided data or fall back to original favorites
+        const data = dataToRender || this.favorites;
+
+        if (data.length === 0) {
             // Show empty state
             container.style.display = 'none';
             emptyState.style.display = 'block';
@@ -78,9 +139,9 @@ const FavoritesPage = {
 
         let html = '<div class="row g-3">';
 
-        this.favorites.forEach((forum, index) => {
+        data.forEach((forum, index) => {
             const isFirst = index === 0;
-            const isLast = index === this.favorites.length - 1;
+            const isLast = index === data.length - 1;
 
             html += `
                 <div class="col-md-6 col-lg-4">
@@ -155,18 +216,85 @@ const FavoritesPage = {
         });
     },
 
-    renderHistory() {
+    async translateAndRenderHistory() {
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderHistory();
+            return;
+        }
+
+        // Clone history to avoid modifying original
+        const translatedHistory = JSON.parse(JSON.stringify(this.history));
+
+        try {
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
+
+            translatedHistory.forEach((thread, idx) => {
+                if (thread.subject) {
+                    textMap.push({ type: 'subject', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.subject);
+                }
+                if (thread.author) {
+                    textMap.push({ type: 'author', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.author);
+                }
+                if (thread.forumName) {
+                    textMap.push({ type: 'forumName', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.forumName);
+                }
+            });
+
+            if (textsToTranslate.length > 0) {
+                console.log(`[Translation] Translating ${textsToTranslate.length} history texts...`);
+
+                // Translate all texts
+                const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+                if (translated && translated.length > 0) {
+                    // Apply translations
+                    textMap.forEach(mapping => {
+                        const result = translated[mapping.index];
+                        let translatedText = result?.translations?.[0]?.text || textsToTranslate[mapping.index];
+                        // Format translated text
+                        translatedText = TranslationUtil.formatTranslatedText(translatedText);
+
+                        if (mapping.type === 'subject') {
+                            translatedHistory[mapping.idx].subject = translatedText;
+                        } else if (mapping.type === 'author') {
+                            translatedHistory[mapping.idx].author = translatedText;
+                        } else if (mapping.type === 'forumName') {
+                            translatedHistory[mapping.idx].forumName = translatedText;
+                        }
+                    });
+
+                    console.log('[Translation] History translation complete!');
+                }
+            }
+        } catch (error) {
+            console.error('[Translation] Error during history translation:', error);
+        }
+
+        // Render with translated data
+        this.renderHistory(translatedHistory);
+    },
+
+    renderHistory(dataToRender) {
         const container = document.getElementById('thread-history');
         if (!container) return;
 
-        if (this.history.length === 0) {
+        // Use provided data or fall back to original history
+        const data = dataToRender || this.history;
+
+        if (data.length === 0) {
             container.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-clock-history"></i> No thread history yet</div>';
             return;
         }
 
         let html = '<div class="list-group">';
 
-        this.history.forEach((thread, index) => {
+        data.forEach((thread, index) => {
             const timeAgo = this.getTimeAgo(thread.timestamp);
 
             html += `
