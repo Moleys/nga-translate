@@ -6,8 +6,8 @@ const ForumPage = {
         // Load favorites from localStorage
         this.loadFavorites();
 
-        // Render all forums from forum-list.js
-        this.renderForumList();
+        // Render all forums from forum-list.js with translation
+        this.translateAndRender();
     },
 
     loadFavorites() {
@@ -40,10 +40,10 @@ const ForumPage = {
         }
 
         this.saveFavorites();
-        this.renderForumList(); // Re-render to update favorite icons
+        this.translateAndRender(); // Re-render with translation
     },
 
-    renderForumList() {
+    async translateAndRender() {
         const container = document.getElementById('forum-categories');
         if (!container) return;
 
@@ -52,9 +52,110 @@ const ForumPage = {
             return;
         }
 
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderForumList();
+            return;
+        }
+
+        // Clone forumList to avoid modifying the original
+        const translatedForumList = JSON.parse(JSON.stringify(forumList));
+
+        try {
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
+
+            translatedForumList.forEach((category, catIdx) => {
+                if (category.category) {
+                    textMap.push({ type: 'category', catIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(category.category);
+                }
+
+                category.forums.forEach((forum, forumIdx) => {
+                    if (forum.name) {
+                        textMap.push({ type: 'forum_name', catIdx, forumIdx, index: textsToTranslate.length });
+                        textsToTranslate.push(forum.name);
+                    }
+                    if (forum.subject) {
+                        // Preprocess BBCode - extract text segments
+                        const {textSegments, structure, emptyLines} = BBCodeTranslator.prepareBBCodeForTranslation(forum.subject);
+                        textMap.push({
+                            type: 'forum_subject',
+                            catIdx,
+                            forumIdx,
+                            startIndex: textsToTranslate.length,
+                            segmentCount: textSegments.length,
+                            structure: structure,
+                            emptyLines: emptyLines
+                        });
+                        // Add all text segments to translation queue
+                        textSegments.forEach(segment => {
+                            textsToTranslate.push(segment);
+                        });
+                    }
+                });
+            });
+
+            console.log(`[Translation] Translating ${textsToTranslate.length} forum texts...`);
+
+            // Translate all texts
+            const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+            if (translated && translated.length > 0) {
+                // Apply translations
+                textMap.forEach(mapping => {
+                    const result = translated[mapping.index];
+                    const translatedText = result?.translations?.[0]?.text || textsToTranslate[mapping.index];
+
+                    if (mapping.type === 'category') {
+                        translatedForumList[mapping.catIdx].category = translatedText;
+                    } else if (mapping.type === 'forum_name') {
+                        translatedForumList[mapping.catIdx].forums[mapping.forumIdx].name = translatedText;
+                    } else if (mapping.type === 'forum_subject') {
+                        // Reconstruct BBCode content from translated segments
+                        const translatedSegments = [];
+                        for (let i = 0; i < mapping.segmentCount; i++) {
+                            const result = translated[mapping.startIndex + i];
+                            let segmentText = result?.translations?.[0]?.text || textsToTranslate[mapping.startIndex + i];
+                            // Format: split by <br/>, trim, capitalize, join
+                            segmentText = TranslationUtil.formatTranslatedText(segmentText);
+                            translatedSegments.push(segmentText);
+                        }
+                        const restored = BBCodeTranslator.restoreBBCodeAfterTranslation(
+                            translatedSegments,
+                            mapping.structure,
+                            mapping.emptyLines
+                        );
+                        translatedForumList[mapping.catIdx].forums[mapping.forumIdx].subject = restored;
+                    }
+                });
+
+                console.log('[Translation] Forum list translation complete!');
+            }
+        } catch (error) {
+            console.error('[Translation] Error during forum translation:', error);
+        }
+
+        // Render with translated data
+        this.renderForumList(translatedForumList);
+    },
+
+    renderForumList(dataToRender) {
+        const container = document.getElementById('forum-categories');
+        if (!container) return;
+
+        // Use provided data or fall back to original forumList
+        const data = dataToRender || forumList;
+
+        if (typeof data === 'undefined' || data.length === 0) {
+            container.innerHTML = '<div class="alert alert-warning">No forums available</div>';
+            return;
+        }
+
         let html = '';
 
-        forumList.forEach(category => {
+        data.forEach(category => {
             html += `
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">

@@ -99,13 +99,166 @@ const ThreadReader = {
             } else if (data.code !== 0) {
                 this.showError(data.msg || 'API Error');
             } else {
-                this.renderPosts(data);
+                // Translate API data before rendering
+                await this.translateAndRender(data);
             }
         } catch (error) {
             this.showError(error.message);
         } finally {
             this.loading = false;
         }
+    },
+
+    async translateAndRender(apiData) {
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderPosts(apiData);
+            return;
+        }
+
+        try {
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
+
+            // Thread info
+            if (apiData.tsubject) {
+                textMap.push({ type: 'tsubject', index: textsToTranslate.length });
+                textsToTranslate.push(apiData.tsubject);
+            }
+            if (apiData.tauthor) {
+                textMap.push({ type: 'tauthor', index: textsToTranslate.length });
+                textsToTranslate.push(apiData.tauthor);
+            }
+            if (apiData.forum_name) {
+                textMap.push({ type: 'forum_name', index: textsToTranslate.length });
+                textsToTranslate.push(apiData.forum_name);
+            }
+
+            // Posts content
+            const posts = Array.isArray(apiData.result) ? apiData.result : [];
+            posts.forEach((post, postIdx) => {
+                if (post.author?.username || post.author) {
+                    textMap.push({ type: 'post_author', postIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(post.author?.username || post.author);
+                }
+                if (post.content) {
+                    // Preprocess BBCode - extract text segments
+                    const {textSegments, structure, emptyLines} = BBCodeTranslator.prepareBBCodeForTranslation(post.content);
+                    textMap.push({
+                        type: 'post_content',
+                        postIdx,
+                        startIndex: textsToTranslate.length,
+                        segmentCount: textSegments.length,
+                        structure: structure,
+                        emptyLines: emptyLines
+                    });
+                    // Add all text segments to translation queue
+                    textSegments.forEach(segment => {
+                        textsToTranslate.push(segment);
+                    });
+                }
+            });
+
+            // Hot posts
+            const hotPosts = apiData.hot_post || [];
+            hotPosts.forEach((post, postIdx) => {
+                if (post.author?.username || post.author) {
+                    textMap.push({ type: 'hot_author', postIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(post.author?.username || post.author);
+                }
+                if (post.content) {
+                    // Preprocess BBCode - extract text segments
+                    const {textSegments, structure, emptyLines} = BBCodeTranslator.prepareBBCodeForTranslation(post.content);
+                    textMap.push({
+                        type: 'hot_content',
+                        postIdx,
+                        startIndex: textsToTranslate.length,
+                        segmentCount: textSegments.length,
+                        structure: structure,
+                        emptyLines: emptyLines
+                    });
+                    // Add all text segments to translation queue
+                    textSegments.forEach(segment => {
+                        textsToTranslate.push(segment);
+                    });
+                }
+            });
+
+            console.log(`[Translation] Translating ${textsToTranslate.length} texts...`);
+
+            // Translate all texts
+            const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+            if (translated && translated.length > 0) {
+                // Apply translations back to apiData
+                textMap.forEach(mapping => {
+                    const result = translated[mapping.index];
+                    const translatedText = result?.translations?.[0]?.text || textsToTranslate[mapping.index];
+
+                    if (mapping.type === 'tsubject') {
+                        apiData.tsubject = translatedText;
+                    } else if (mapping.type === 'tauthor') {
+                        apiData.tauthor = translatedText;
+                    } else if (mapping.type === 'forum_name') {
+                        apiData.forum_name = translatedText;
+                    } else if (mapping.type === 'post_author') {
+                        const post = posts[mapping.postIdx];
+                        if (post.author?.username) {
+                            post.author.username = translatedText;
+                        } else {
+                            post.author = translatedText;
+                        }
+                    } else if (mapping.type === 'post_content') {
+                        // Reconstruct BBCode content from translated segments
+                        const translatedSegments = [];
+                        for (let i = 0; i < mapping.segmentCount; i++) {
+                            const result = translated[mapping.startIndex + i];
+                            let segmentText = result?.translations?.[0]?.text || textsToTranslate[mapping.startIndex + i];
+                            // Format: split by <br/>, trim, capitalize, join
+                            segmentText = TranslationUtil.formatTranslatedText(segmentText);
+                            translatedSegments.push(segmentText);
+                        }
+                        const restored = BBCodeTranslator.restoreBBCodeAfterTranslation(
+                            translatedSegments,
+                            mapping.structure,
+                            mapping.emptyLines
+                        );
+                        posts[mapping.postIdx].content = restored;
+                    } else if (mapping.type === 'hot_author') {
+                        const post = hotPosts[mapping.postIdx];
+                        if (post.author?.username) {
+                            post.author.username = translatedText;
+                        } else {
+                            post.author = translatedText;
+                        }
+                    } else if (mapping.type === 'hot_content') {
+                        // Reconstruct BBCode content from translated segments
+                        const translatedSegments = [];
+                        for (let i = 0; i < mapping.segmentCount; i++) {
+                            const result = translated[mapping.startIndex + i];
+                            let segmentText = result?.translations?.[0]?.text || textsToTranslate[mapping.startIndex + i];
+                            // Format: split by <br/>, trim, capitalize, join
+                            segmentText = TranslationUtil.formatTranslatedText(segmentText);
+                            translatedSegments.push(segmentText);
+                        }
+                        const restored = BBCodeTranslator.restoreBBCodeAfterTranslation(
+                            translatedSegments,
+                            mapping.structure,
+                            mapping.emptyLines
+                        );
+                        hotPosts[mapping.postIdx].content = restored;
+                    }
+                });
+
+                console.log('[Translation] Translation complete!');
+            }
+        } catch (error) {
+            console.error('[Translation] Error during translation:', error);
+        }
+
+        // Render with translated data
+        this.renderPosts(apiData);
     },
 
     renderPosts(apiData) {

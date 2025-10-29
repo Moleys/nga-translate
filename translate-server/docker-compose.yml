@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  vietnamese-translator:
+    build: .
+    ports:
+      - "5008:5008"
+    environment:
+      - PORT=5008
+    restart: unless-stopped
+    volumes:
+      - ./data:/root/data:ro
+    networks:
+      - translator-network
+
+networks:
+  translator-network:
+    driver: bridge
