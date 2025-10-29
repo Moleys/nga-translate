@@ -570,6 +570,15 @@ const ThreadReader = {
             return `<video${modifiedAttrs}>`;
         });
 
+        // Parse [fixsize] tags: [fixsize height X width Y Z] - skip entirely (layout data)
+        parsed = parsed.replace(/\[fixsize[^\]]*\]/gi, '');
+
+        // Parse [comment] tags: [comment ...]...[/comment] - skip entirely (metadata)
+        parsed = parsed.replace(/\[comment[^\]]*\][\s\S]*?\[\/comment\]/gi, '');
+
+        // Parse [style] tags: Remove [style] TAGS but keep inner TEXT (using shared utility)
+        parsed = Utils.removeStyleBlocks(parsed);
+
         // Parse emoticons first: [s:category:emoticon_name]
         parsed = parsed.replace(/\[s:([^:]+):([^\]]+)\]/g, (match, category, name) => {
             if (typeof getEmoticonUrl === 'function') {

@@ -3,6 +3,13 @@ const BBCodeTranslator = {
     prepareBBCodeForTranslation(content) {
         if (!content) return {textSegments: [], structure: [], emptyLines: []};
 
+        // FIRST: Remove [style] TAGS but keep text inside (using shared utility)
+        content = Utils.removeStyleBlocks(content);
+
+        // Also remove [fixsize] and [comment] blocks entirely (including content)
+        content = content.replace(/\[fixsize[^\]]*\]/gi, '');
+        content = content.replace(/\[comment[^\]]*\][\s\S]*?\[\/comment\]/gi, '');
+
         // First, extract and store empty line positions
         const lines = content.split('\n');
         const emptyLines = [];
@@ -33,6 +40,8 @@ const BBCodeTranslator = {
             // Complex BBCode with content that should NOT be translated
             {regex: /\[img\].*?\[\/img\]/g, translatable: false},
             {regex: /\[flash\].*?\[\/flash\]/g, translatable: false},
+
+            // NOTE: [style], [fixsize], [comment] already removed above
             // NOTE: [url] tags are handled by parseContent() AFTER translation
 
             // BBCode with parameters - split to translate text only

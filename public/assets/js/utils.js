@@ -102,5 +102,73 @@ const Utils = {
         const VALID_ALIGNS = ['left', 'center', 'right', 'justify'];
 
         return VALID_ALIGNS.includes(align.toLowerCase()) ? align.toLowerCase() : 'left';
+    },
+
+    /**
+     * Remove [style] BBCode tags but preserve inner text content
+     * Handles nested [style] tags properly using balanced bracket counting
+     * @param {string} content - Content with [style] tags
+     * @returns {string} Content with [style] tags removed, text preserved
+     */
+    removeStyleBlocks(content) {
+        if (!content) return content;
+
+        let result = content;
+        let maxIterations = 20; // Safety limit for deeply nested tags
+
+        while (result.includes('[style') && maxIterations-- > 0) {
+            let pos = 0;
+            let modified = false;
+
+            while (pos < result.length) {
+                const startIdx = result.indexOf('[style', pos);
+                if (startIdx === -1) break;
+
+                // Find end of opening tag
+                const openTagEnd = result.indexOf(']', startIdx);
+                if (openTagEnd === -1) break;
+
+                // Count nested depth using balanced bracket algorithm
+                let depth = 1;
+                let searchPos = openTagEnd + 1;
+
+                while (searchPos < result.length && depth > 0) {
+                    const nextStyle = result.indexOf('[style', searchPos);
+                    const nextClose = result.indexOf('[/style]', searchPos);
+
+                    if (nextClose === -1) break; // No closing tag found
+
+                    if (nextStyle !== -1 && nextStyle < nextClose) {
+                        // Found nested opening tag
+                        depth++;
+                        searchPos = nextStyle + 6; // '[style'.length
+                    } else {
+                        // Found closing tag
+                        depth--;
+                        if (depth === 0) {
+                            // Found matching closing tag - extract inner content
+                            const innerContent = result.substring(openTagEnd + 1, nextClose);
+                            const endPos = nextClose + 8; // '[/style]'.length
+
+                            // Replace [style...]CONTENT[/style] with just CONTENT
+                            result = result.substring(0, startIdx) + innerContent + result.substring(endPos);
+                            modified = true;
+                            break;
+                        }
+                        searchPos = nextClose + 8;
+                    }
+                }
+
+                if (!modified) {
+                    pos = openTagEnd + 1;
+                } else {
+                    pos = startIdx; // Restart from current position for nested tags
+                }
+            }
+
+            if (!modified) break; // No more [style] tags found
+        }
+
+        return result;
     }
 };
