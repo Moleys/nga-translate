@@ -282,6 +282,10 @@ const ForumApp = {
             const hasAttachment = thread.attachs && thread.attachs.length > 0;
             const thumbnailUrl = hasAttachment ? attachPrefix + thread.attachs[0].attachurl : '';
 
+            // Get title styling from API
+            const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
+            const titleClass = titleStyle ? 'text-decoration-none' : 'text-decoration-none text-dark';
+
             return `
                 <div class="card mb-3 hover-shadow">
                     <div class="card-body">
@@ -293,7 +297,7 @@ const ForumApp = {
                             ` : ''}
                             <div class="${hasAttachment ? 'col' : 'col-12'}">
                                 <h5 class="card-title mb-3">
-                                    <a href="/thread/${tid}" class="text-decoration-none text-dark">
+                                    <a href="/thread/${tid}" class="${titleClass}" ${titleStyle}>
                                         ${hasAttachment ? '<i class="bi bi-image text-muted me-2"></i>' : ''}${this.escapeHtml(title)}
                                     </a>
                                 </h5>

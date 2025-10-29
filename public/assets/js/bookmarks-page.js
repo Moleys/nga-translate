@@ -141,6 +141,10 @@ const BookmarksPage = {
             const timeAgo = this.getTimeAgo(bookmark.timestamp);
             const fullDate = new Date(bookmark.timestamp).toLocaleString();
 
+            // Get title styling from API
+            const titleStyle = Utils.getTitleStyle(bookmark.titlefont_api);
+            const titleClass = titleStyle ? 'text-decoration-none' : 'text-decoration-none text-dark';
+
             html += `
                 <div class="list-group-item">
                     <div class="d-flex w-100 justify-content-between align-items-start">
@@ -148,7 +152,7 @@ const BookmarksPage = {
                             <div class="d-flex align-items-center mb-2">
                                 <i class="bi bi-bookmark-fill text-warning me-2"></i>
                                 <h5 class="mb-0 flex-grow-1">
-                                    <a href="/thread/${this.escapeHtml(bookmark.tid)}" class="text-decoration-none text-dark">
+                                    <a href="/thread/${this.escapeHtml(bookmark.tid)}" class="${titleClass}" ${titleStyle}>
                                         ${this.escapeHtml(bookmark.subject)}
                                     </a>
                                 </h5>

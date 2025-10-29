@@ -297,11 +297,14 @@ const FavoritesPage = {
         data.forEach((thread, index) => {
             const timeAgo = this.getTimeAgo(thread.timestamp);
 
+            // Get title styling from API
+            const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
+
             html += `
                 <a href="/thread/${this.escapeHtml(thread.tid)}" class="list-group-item list-group-item-action">
                     <div class="d-flex w-100 justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <h6 class="mb-1">${this.escapeHtml(thread.subject)}</h6>
+                            <h6 class="mb-1" ${titleStyle}>${this.escapeHtml(thread.subject)}</h6>
                             <small class="text-muted">
                                 <i class="bi bi-person"></i> ${this.escapeHtml(thread.author)}
                                 ${thread.forumName ? `<span class="mx-1">•</span><i class="bi bi-folder"></i> ${this.escapeHtml(thread.forumName)}` : ''}

@@ -118,7 +118,8 @@ const ThreadReader = {
                 author: apiData.tauthor || 'Unknown',
                 replies: apiData.vrows || 0,
                 fid: apiData.fid || null,
-                forumName: apiData.forum_name || 'Forum'
+                forumName: apiData.forum_name || 'Forum',
+                titlefont_api: apiData.titlefont_api || null
             };
         }
 
@@ -823,6 +824,7 @@ const ThreadReader = {
             subject: this.rawThreadInfo.subject,
             author: this.rawThreadInfo.author,
             forumName: this.rawThreadInfo.forumName,
+            titlefont_api: this.rawThreadInfo.titlefont_api,
             timestamp: Date.now()
         });
 
@@ -902,6 +904,7 @@ const ThreadReader = {
                 subject: this.rawThreadInfo.subject,
                 author: this.rawThreadInfo.author,
                 forumName: this.rawThreadInfo.forumName,
+                titlefont_api: this.rawThreadInfo.titlefont_api,
                 timestamp: Date.now()
             });
 

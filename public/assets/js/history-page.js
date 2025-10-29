@@ -132,12 +132,15 @@ const HistoryPage = {
             const timeAgo = this.getTimeAgo(thread.timestamp);
             const fullDate = new Date(thread.timestamp).toLocaleString();
 
+            // Get title styling from API
+            const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
+
             html += `
                 <a href="/thread/${this.escapeHtml(thread.tid)}" class="list-group-item list-group-item-action">
                     <div class="d-flex w-100 justify-content-between align-items-start">
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center mb-2">
-                                <h5 class="mb-0 flex-grow-1">${this.escapeHtml(thread.subject)}</h5>
+                                <h5 class="mb-0 flex-grow-1" ${titleStyle}>${this.escapeHtml(thread.subject)}</h5>
                                 <span class="badge bg-secondary ms-2">#${index + 1}</span>
                             </div>
                             <p class="mb-1 text-muted">
