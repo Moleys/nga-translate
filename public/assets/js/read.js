@@ -16,6 +16,7 @@ const ThreadReader = {
 
             this.loadPosts();
             this.setupPaginationHandlers();
+            this.setupBookmarkButton();
         }
     },
 
@@ -132,6 +133,9 @@ const ThreadReader = {
                 this.saveThreadToHistory();
                 this.threadInfo.historySaved = true;
             }
+
+            // Update bookmark button state
+            this.updateBookmarkButton();
         }
 
         // Parse posts - result is a direct array
@@ -640,6 +644,98 @@ const ThreadReader = {
 
         // Save back to localStorage
         localStorage.setItem('nga_thread_history', JSON.stringify(history));
+    },
+
+    setupBookmarkButton() {
+        const btn = document.getElementById('bookmark-btn');
+        if (!btn) return;
+
+        // Update button state after thread info loads
+        btn.addEventListener('click', () => {
+            this.toggleBookmark();
+        });
+
+        // Check bookmark state initially (will update when thread loads)
+        this.updateBookmarkButton();
+    },
+
+    updateBookmarkButton() {
+        const btn = document.getElementById('bookmark-btn');
+        const icon = btn?.querySelector('i');
+        const text = document.getElementById('bookmark-text');
+
+        if (!btn || !icon || !text) return;
+
+        const isBookmarked = this.isThreadBookmarked();
+
+        if (isBookmarked) {
+            icon.className = 'bi bi-bookmark-fill';
+            text.textContent = 'Bookmarked';
+            btn.classList.remove('btn-outline-warning');
+            btn.classList.add('btn-warning');
+        } else {
+            icon.className = 'bi bi-bookmark';
+            text.textContent = 'Bookmark';
+            btn.classList.remove('btn-warning');
+            btn.classList.add('btn-outline-warning');
+        }
+    },
+
+    isThreadBookmarked() {
+        const stored = localStorage.getItem('nga_thread_bookmarks');
+        const bookmarks = stored ? JSON.parse(stored) : [];
+        return bookmarks.some(b => b.tid === this.currentTid);
+    },
+
+    toggleBookmark() {
+        if (!this.threadInfo) {
+            alert('Please wait for thread to load');
+            return;
+        }
+
+        const stored = localStorage.getItem('nga_thread_bookmarks');
+        let bookmarks = stored ? JSON.parse(stored) : [];
+
+        const existingIndex = bookmarks.findIndex(b => b.tid === this.currentTid);
+
+        if (existingIndex >= 0) {
+            // Remove bookmark
+            bookmarks.splice(existingIndex, 1);
+            localStorage.setItem('nga_thread_bookmarks', JSON.stringify(bookmarks));
+            this.updateBookmarkButton();
+
+            // Show notification
+            this.showNotification('Bookmark removed', 'info');
+        } else {
+            // Add bookmark
+            bookmarks.unshift({
+                tid: this.currentTid,
+                subject: this.threadInfo.subject,
+                author: this.threadInfo.author,
+                forumName: this.threadInfo.forumName,
+                timestamp: Date.now()
+            });
+
+            localStorage.setItem('nga_thread_bookmarks', JSON.stringify(bookmarks));
+            this.updateBookmarkButton();
+
+            // Show notification
+            this.showNotification('Thread bookmarked!', 'success');
+        }
+    },
+
+    showNotification(message, type = 'info') {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+        toast.style.zIndex = '9999';
+        toast.textContent = message;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 2000);
     },
 
     escapeHtml(text) {

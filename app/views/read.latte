@@ -15,9 +15,14 @@
         <div class="mb-4">
             <h1 class="display-6" id="thread-title">Loading...</h1>
             <p class="text-muted" id="thread-info">Thread ID: {$tid}</p>
-            <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i> Back
-            </a>
+            <div class="btn-group">
+                <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                <button id="bookmark-btn" class="btn btn-outline-warning btn-sm" title="Bookmark this thread">
+                    <i class="bi bi-bookmark"></i> <span id="bookmark-text">Bookmark</span>
+                </button>
+            </div>
         </div>
 
         <!-- Thread container -->
@@ -38,6 +43,6 @@
 </div>
 
 
-<script src="/assets/js/emoticons.js?v=20251029k"></script>
-<script src="/assets/js/read.js?v=20251029k"></script>
+<script src="/assets/js/emoticons.js?v=20251029L"></script>
+<script src="/assets/js/read.js?v=20251029L"></script>
 {/block}

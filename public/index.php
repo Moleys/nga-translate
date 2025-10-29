@@ -36,6 +36,13 @@ Flight::route('/history', function() {
     ]);
 });
 
+// Bookmarked threads page
+Flight::route('/bookmarks', function() {
+    Flight::render('bookmarks.latte', [
+        'title' => 'Bookmarked Threads - NGA'
+    ]);
+});
+
 // Forum detail page
 Flight::route('/forum/@fid', function($fid) {
     Flight::render('forum.latte', [

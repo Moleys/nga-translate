@@ -276,32 +276,9 @@
     font-size: 0.8rem;
 }
 
-/* Reading History Sidebar */
-#thread-history-sidebar .list-group-item {
-    border-left: 3px solid transparent;
-    transition: all 0.2s ease;
-}
-#thread-history-sidebar .list-group-item:hover {
-    border-left-color: #0d6efd;
-    background-color: #f8f9fa;
-}
-#thread-history-sidebar .list-group-item.active {
-    background-color: #e7f1ff;
-    border-left-color: #0d6efd;
-    color: #000;
-}
-#thread-history-sidebar .list-group-item.active:hover {
-    background-color: #d0e7ff;
-}
-
-/* Responsive: Hide sidebar on mobile, show as collapsed section */
-@media (max-width: 991px) {
-    .col-lg-4 .card.sticky-top {
-        position: relative !important;
-        top: 0 !important;
-        margin-bottom: 2rem;
-    }
-    #thread-history-sidebar .card-body {
-        max-height: 300px !important;
-    }
+.thread-thumbnail {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 8px;
 }
