@@ -22,7 +22,9 @@ const BBCodeTranslator = {
         // Define BBCode patterns (order matters - match longer patterns first)
         const patterns = [
             // HTML tags with URLs - do NOT translate (case-insensitive for video)
+            // Match OUTER span first, which contains video tag inside
             {regex: /<span\s+class="video">.*?<\/span>/gsi, translatable: false},
+            // Standalone video tags (not wrapped in span)
             {regex: /<video[^>]*>.*?<\/video>/gsi, translatable: false},
             {regex: /<img[^>]*>/gi, translatable: false},
             {regex: /<a[^>]*>.*?<\/a>/gsi, translatable: false},
@@ -85,9 +87,21 @@ const BBCodeTranslator = {
         // Sort matches by position
         allMatches.sort((a, b) => a.start - b.start);
 
-        // Build structure: alternate between text and tags
+        // Remove overlapping matches (keep first/longest match)
+        const filteredMatches = [];
         let lastEnd = 0;
         allMatches.forEach(match => {
+            // Skip if this match overlaps with previous match
+            if (match.start < lastEnd) {
+                return;
+            }
+            filteredMatches.push(match);
+            lastEnd = match.end;
+        });
+
+        // Build structure: alternate between text and tags
+        lastEnd = 0;
+        filteredMatches.forEach(match => {
             // Text before this tag
             if (match.start > lastEnd) {
                 const text = prepared.substring(lastEnd, match.start);

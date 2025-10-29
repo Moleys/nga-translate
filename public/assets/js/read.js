@@ -545,6 +545,30 @@ const ThreadReader = {
 
         let parsed = content;
 
+        // Add CORS proxy to video URLs (src and poster attributes)
+        const videoProxyUrl = 'https://cors.moldich.eu.org/?q=';
+
+        // Replace video src and poster attributes together
+        parsed = parsed.replace(/<video([^>]*)>/gi, (match, attrs) => {
+            let modifiedAttrs = attrs;
+
+            // Replace src attribute
+            modifiedAttrs = modifiedAttrs.replace(/\ssrc=["']([^"']+)["']/gi, (m, url) => {
+                if (!url.startsWith('http')) return m;
+                const proxiedUrl = videoProxyUrl + encodeURIComponent(url);
+                return ` src="${proxiedUrl}"`;
+            });
+
+            // Replace poster attribute
+            modifiedAttrs = modifiedAttrs.replace(/\sposter=["']([^"']+)["']/gi, (m, url) => {
+                if (!url.startsWith('http')) return m;
+                const proxiedUrl = videoProxyUrl + encodeURIComponent(url);
+                return ` poster="${proxiedUrl}"`;
+            });
+
+            return `<video${modifiedAttrs}>`;
+        });
+
         // Parse emoticons first: [s:category:emoticon_name]
         parsed = parsed.replace(/\[s:([^:]+):([^\]]+)\]/g, (match, category, name) => {
             if (typeof getEmoticonUrl === 'function') {
