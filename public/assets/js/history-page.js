@@ -6,8 +6,8 @@ const HistoryPage = {
         // Load history from localStorage
         this.loadHistory();
 
-        // Render history
-        this.renderHistory();
+        // Translate and render history
+        this.translateAndRenderHistory();
 
         // Setup clear button
         this.setupClearButton();
@@ -26,7 +26,7 @@ const HistoryPage = {
         if (confirm('Are you sure you want to clear all reading history?')) {
             this.history = [];
             this.saveHistory();
-            this.renderHistory();
+            this.translateAndRenderHistory();
         }
     },
 
@@ -39,21 +39,83 @@ const HistoryPage = {
         }
     },
 
-    renderHistory() {
+    async translateAndRenderHistory() {
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderHistory(this.history);
+            return;
+        }
+
+        if (this.history.length === 0) {
+            this.renderHistory([]);
+            return;
+        }
+
+        try {
+            // Clone history to avoid modifying original raw data
+            const translatedHistory = JSON.parse(JSON.stringify(this.history));
+
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
+
+            translatedHistory.forEach((thread, idx) => {
+                if (thread.subject) {
+                    textMap.push({ type: 'subject', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.subject);
+                }
+                if (thread.author) {
+                    textMap.push({ type: 'author', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.author);
+                }
+                if (thread.forumName) {
+                    textMap.push({ type: 'forumName', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.forumName);
+                }
+            });
+
+            if (textsToTranslate.length === 0) {
+                this.renderHistory(translatedHistory);
+                return;
+            }
+
+            // Translate all texts
+            const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+            // Apply translations
+            textMap.forEach(mapping => {
+                const translatedText = translated[mapping.index]?.translations?.[0]?.text || textsToTranslate[mapping.index];
+                const formattedText = TranslationUtil.formatTranslatedText(translatedText);
+                translatedHistory[mapping.idx][mapping.type] = formattedText;
+            });
+
+            // Render with translated data
+            this.renderHistory(translatedHistory);
+        } catch (error) {
+            console.error('[History] Translation failed:', error);
+            // Fallback: render raw data
+            this.renderHistory(this.history);
+        }
+    },
+
+    renderHistory(historyToRender) {
         const container = document.getElementById('thread-history-list');
         const emptyState = document.getElementById('empty-history-state');
         const countElem = document.getElementById('history-count');
 
         if (!container || !emptyState) return;
 
+        // Use original history for count
+        const historyCount = this.history.length;
+
         // Update count
         if (countElem) {
-            countElem.textContent = this.history.length === 1
+            countElem.textContent = historyCount === 1
                 ? '1 thread'
-                : `${this.history.length} threads`;
+                : `${historyCount} threads`;
         }
 
-        if (this.history.length === 0) {
+        if (historyCount === 0) {
             // Show empty state
             container.style.display = 'none';
             emptyState.style.display = 'block';
@@ -66,7 +128,7 @@ const HistoryPage = {
 
         let html = '<div class="list-group">';
 
-        this.history.forEach((thread, index) => {
+        historyToRender.forEach((thread, index) => {
             const timeAgo = this.getTimeAgo(thread.timestamp);
             const fullDate = new Date(thread.timestamp).toLocaleString();
 

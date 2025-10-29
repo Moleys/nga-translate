@@ -4,6 +4,7 @@ const ThreadReader = {
     loading: false,
     totalPages: 1,
     threadInfo: null,
+    rawThreadInfo: null, // Store raw Chinese data before translation
 
     init() {
         const threadPage = document.getElementById('thread-posts');
@@ -110,6 +111,17 @@ const ThreadReader = {
     },
 
     async translateAndRender(apiData) {
+        // Save raw thread info BEFORE translation
+        if (!this.rawThreadInfo || this.currentPage === 1) {
+            this.rawThreadInfo = {
+                subject: apiData.tsubject || 'Untitled Thread',
+                author: apiData.tauthor || 'Unknown',
+                replies: apiData.vrows || 0,
+                fid: apiData.fid || null,
+                forumName: apiData.forum_name || 'Forum'
+            };
+        }
+
         // Check if translation is enabled
         if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
             this.renderPosts(apiData);
@@ -781,12 +793,12 @@ const ThreadReader = {
             history.splice(existingIndex, 1);
         }
 
-        // Add current thread to beginning of history
+        // Add current thread to beginning of history with RAW Chinese text
         history.unshift({
             tid: this.currentTid,
-            subject: this.threadInfo.subject,
-            author: this.threadInfo.author,
-            forumName: this.threadInfo.forumName,
+            subject: this.rawThreadInfo.subject,
+            author: this.rawThreadInfo.author,
+            forumName: this.rawThreadInfo.forumName,
             timestamp: Date.now()
         });
 
@@ -841,7 +853,7 @@ const ThreadReader = {
     },
 
     toggleBookmark() {
-        if (!this.threadInfo) {
+        if (!this.rawThreadInfo) {
             alert('Please wait for thread to load');
             return;
         }
@@ -860,12 +872,12 @@ const ThreadReader = {
             // Show notification
             this.showNotification('Bookmark removed', 'info');
         } else {
-            // Add bookmark
+            // Add bookmark with RAW Chinese text
             bookmarks.unshift({
                 tid: this.currentTid,
-                subject: this.threadInfo.subject,
-                author: this.threadInfo.author,
-                forumName: this.threadInfo.forumName,
+                subject: this.rawThreadInfo.subject,
+                author: this.rawThreadInfo.author,
+                forumName: this.rawThreadInfo.forumName,
                 timestamp: Date.now()
             });
 

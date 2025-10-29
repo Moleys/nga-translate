@@ -6,8 +6,8 @@ const BookmarksPage = {
         // Load bookmarks from localStorage
         this.loadBookmarks();
 
-        // Render bookmarks
-        this.renderBookmarks();
+        // Translate and render bookmarks
+        this.translateAndRenderBookmarks();
 
         // Setup clear button
         this.setupClearButton();
@@ -26,7 +26,7 @@ const BookmarksPage = {
         if (confirm('Are you sure you want to clear all bookmarks?')) {
             this.bookmarks = [];
             this.saveBookmarks();
-            this.renderBookmarks();
+            this.translateAndRenderBookmarks();
         }
     },
 
@@ -35,7 +35,7 @@ const BookmarksPage = {
         if (index >= 0) {
             this.bookmarks.splice(index, 1);
             this.saveBookmarks();
-            this.renderBookmarks();
+            this.translateAndRenderBookmarks();
         }
     },
 
@@ -48,21 +48,83 @@ const BookmarksPage = {
         }
     },
 
-    renderBookmarks() {
+    async translateAndRenderBookmarks() {
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderBookmarks(this.bookmarks);
+            return;
+        }
+
+        if (this.bookmarks.length === 0) {
+            this.renderBookmarks([]);
+            return;
+        }
+
+        try {
+            // Clone bookmarks to avoid modifying original raw data
+            const translatedBookmarks = JSON.parse(JSON.stringify(this.bookmarks));
+
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
+
+            translatedBookmarks.forEach((bookmark, idx) => {
+                if (bookmark.subject) {
+                    textMap.push({ type: 'subject', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(bookmark.subject);
+                }
+                if (bookmark.author) {
+                    textMap.push({ type: 'author', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(bookmark.author);
+                }
+                if (bookmark.forumName) {
+                    textMap.push({ type: 'forumName', idx, index: textsToTranslate.length });
+                    textsToTranslate.push(bookmark.forumName);
+                }
+            });
+
+            if (textsToTranslate.length === 0) {
+                this.renderBookmarks(translatedBookmarks);
+                return;
+            }
+
+            // Translate all texts
+            const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+            // Apply translations
+            textMap.forEach(mapping => {
+                const translatedText = translated[mapping.index]?.translations?.[0]?.text || textsToTranslate[mapping.index];
+                const formattedText = TranslationUtil.formatTranslatedText(translatedText);
+                translatedBookmarks[mapping.idx][mapping.type] = formattedText;
+            });
+
+            // Render with translated data
+            this.renderBookmarks(translatedBookmarks);
+        } catch (error) {
+            console.error('[Bookmarks] Translation failed:', error);
+            // Fallback: render raw data
+            this.renderBookmarks(this.bookmarks);
+        }
+    },
+
+    renderBookmarks(bookmarksToRender) {
         const container = document.getElementById('thread-bookmarks-list');
         const emptyState = document.getElementById('empty-bookmarks-state');
         const countElem = document.getElementById('bookmarks-count');
 
         if (!container || !emptyState) return;
 
+        // Use original bookmarks for count
+        const bookmarkCount = this.bookmarks.length;
+
         // Update count
         if (countElem) {
-            countElem.textContent = this.bookmarks.length === 1
+            countElem.textContent = bookmarkCount === 1
                 ? '1 thread'
-                : `${this.bookmarks.length} threads`;
+                : `${bookmarkCount} threads`;
         }
 
-        if (this.bookmarks.length === 0) {
+        if (bookmarkCount === 0) {
             // Show empty state
             container.style.display = 'none';
             emptyState.style.display = 'block';
@@ -75,7 +137,7 @@ const BookmarksPage = {
 
         let html = '<div class="list-group">';
 
-        this.bookmarks.forEach((bookmark, index) => {
+        bookmarksToRender.forEach((bookmark, index) => {
             const timeAgo = this.getTimeAgo(bookmark.timestamp);
             const fullDate = new Date(bookmark.timestamp).toLocaleString();
 

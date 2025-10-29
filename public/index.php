@@ -43,6 +43,13 @@ Flight::route('/bookmarks', function() {
     ]);
 });
 
+// Login page
+Flight::route('/login', function() {
+    Flight::render('login.latte', [
+        'title' => 'Login - NGA'
+    ]);
+});
+
 // Forum detail page
 Flight::route('/forum/@fid', function($fid) {
     Flight::render('forum.latte', [
@@ -66,7 +73,11 @@ Flight::route('GET /api/forum/@fid/threads', function($fid) {
     $page = Flight::request()->query->page ?? 1;
     $act = Flight::request()->query->act ?? 'list';
 
-    $nga = new NgaApi();
+    // Read auth from cookies
+    $access_uid = $_COOKIE['nga_access_uid'] ?? '';
+    $access_token = $_COOKIE['nga_access_token'] ?? '';
+
+    $nga = new NgaApi($access_uid, $access_token);
     $data = $nga->fetchSubjectList($fid, $page, $act);
 
     echo json_encode($data);
@@ -78,7 +89,11 @@ Flight::route('GET /api/thread/@tid/posts', function($tid) {
 
     $page = Flight::request()->query->page ?? 1;
 
-    $nga = new NgaApi();
+    // Read auth from cookies
+    $access_uid = $_COOKIE['nga_access_uid'] ?? '';
+    $access_token = $_COOKIE['nga_access_token'] ?? '';
+
+    $nga = new NgaApi($access_uid, $access_token);
     $data = $nga->fetchThreadPosts($tid, $page);
 
     echo json_encode($data);
@@ -97,7 +112,11 @@ Flight::route('GET /api/search/threads', function() {
         return;
     }
 
-    $nga = new NgaApi();
+    // Read auth from cookies
+    $access_uid = $_COOKIE['nga_access_uid'] ?? '';
+    $access_token = $_COOKIE['nga_access_token'] ?? '';
+
+    $nga = new NgaApi($access_uid, $access_token);
     $data = $nga->searchThreads($keyword, $page, $fid);
 
     echo json_encode($data);
@@ -115,7 +134,11 @@ Flight::route('GET /api/search/forums', function() {
         return;
     }
 
-    $nga = new NgaApi();
+    // Read auth from cookies
+    $access_uid = $_COOKIE['nga_access_uid'] ?? '';
+    $access_token = $_COOKIE['nga_access_token'] ?? '';
+
+    $nga = new NgaApi($access_uid, $access_token);
     $data = $nga->searchForums($keyword, $page);
 
     echo json_encode($data);

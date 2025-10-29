@@ -21,10 +21,17 @@ const BBCodeTranslator = {
 
         // Define BBCode patterns (order matters - match longer patterns first)
         const patterns = [
+            // HTML tags with URLs - do NOT translate (case-insensitive for video)
+            {regex: /<span\s+class="video">.*?<\/span>/gsi, translatable: false},
+            {regex: /<video[^>]*>.*?<\/video>/gsi, translatable: false},
+            {regex: /<img[^>]*>/gi, translatable: false},
+            {regex: /<a[^>]*>.*?<\/a>/gsi, translatable: false},
+            {regex: /<source[^>]*>/gi, translatable: false},
+
             // Complex BBCode with content that should NOT be translated
             {regex: /\[img\].*?\[\/img\]/g, translatable: false},
             {regex: /\[flash\].*?\[\/flash\]/g, translatable: false},
-            {regex: /\[url\].*?\[\/url\]/g, translatable: false},
+            // NOTE: [url] tags are handled by parseContent() AFTER translation
 
             // BBCode with parameters - split to translate text only
             {regex: /\[url=([^\]]+)\]/g, translatable: false},
