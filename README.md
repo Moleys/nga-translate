@@ -28,7 +28,6 @@ A modern Progressive Web App (PWA) for browsing NGA forums with Vietnamese trans
 ### Prerequisites
 - PHP >= 7.4
 - Composer
-- Python 3.x (for icon generation)
 
 ### Setup
 
@@ -43,15 +42,6 @@ cd nga-translate
 composer install
 ```
 
-3. **Install Python dependencies (for PWA icons):**
-```bash
-pip install Pillow
-```
-
-4. **Generate PWA icons:**
-```bash
-python generate_icons.py
-```
 
 5. **Start development server:**
 ```bash
@@ -249,6 +239,26 @@ This project follows **SOLID, DRY, KISS, YAGNI** principles:
 
 ### Recent Optimizations
 
+## Glossary + OCR
+
+The app supports a complete glossary editing flow and in‑place OCR for images inside posts.
+
+### Glossary Editing
+
+- Per‑line raw text: each rendered line has a matching `data-raw` built by splitting original API `content` at `<br/>` and stripping BBCode/HTML, emoticons, and standalone URLs.
+- Click‑to‑edit: click any line to open a modal to add/update a glossary entry for that raw text. Entries are saved to `localStorage` under `nga_glossary` as an array of `{ raw, mean }`.
+- Global page: visit `/glossary` to bulk edit (format: `Raw=Meaning` per line), import/export, or clear.
+- Translation requests: the client sends the glossary with each request; the translation server applies this glossary BEFORE built‑in dictionaries.
+
+### Image OCR in Comments
+
+- Click any image in a post to open the OCR modal. Images are proxied via `https://wsrv.nl/?url=` for consistent fetching.
+- OCR: Tesseract.js, Chinese (Simplified, `chi_sim`) with a progress bar.
+- After OCR, the app auto‑translates the text using the same VietPhrase API. You can re‑translate, copy text, copy translation, or fix line breaks.
+- Fix Line Breaks: merges short lines until punctuation for better readability.
+
+Details: see `docs/GLOSSARY_OCR.md`.
+
 ✅ Consolidated duplicate `escapeHtml()` functions (eliminated 35 lines)
 ✅ Created central `CONFIG` constants (no magic numbers)
 ✅ Fixed XSS vulnerability in BBCode parser (CSS injection)
@@ -383,11 +393,6 @@ MIT License - see LICENSE file
 
 ## 📞 Support
 
-For issues or questions:
-- Open a GitHub issue
-- Check `PWA_README.md` for PWA-specific docs
-- Review code comments for implementation details
 
----
 
 **Built with ❤️ by the NGA Forums community**

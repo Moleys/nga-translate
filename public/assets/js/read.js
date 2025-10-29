@@ -583,10 +583,41 @@ const ThreadReader = {
 
         // Delegate click on any line to open edit modal (use line's own data-raw)
         document.addEventListener('click', (e) => {
+            // If clicking on an image, let OCR handler handle it
+            if (e.target && (e.target.tagName === 'IMG' || e.target.closest('img'))) return;
             const lineEl = e.target.closest('.comment-line');
             if (!lineEl) return;
             const raw = lineEl.getAttribute('data-raw') || '';
             this.openGlossaryModal(raw);
+        });
+
+        // Delegate click on images within post-content to open OCR modal
+        document.addEventListener('click', async (e) => {
+            const img = e.target.closest('img');
+            if (!img) return;
+            // Only handle images inside post content
+            if (!img.closest('.post-content')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            await this.openOcrModal(img.getAttribute('src') || '');
+        });
+
+        // OCR modal buttons
+        document.addEventListener('click', async (e) => {
+            if (e.target.id === 'ocr-translate-btn') {
+                await this.translateOcrText();
+            } else if (e.target.id === 'ocr-run-btn') {
+                if (this.lastOcrImageUrl) await this.runOcr(this.lastOcrImageUrl);
+            } else if (e.target.id === 'ocr-copy-text') {
+                const ta = document.getElementById('ocr-text');
+                if (ta) navigator.clipboard.writeText(ta.value || '');
+            } else if (e.target.id === 'ocr-copy-translation') {
+                const el = document.getElementById('ocr-translation');
+                if (el) navigator.clipboard.writeText(el.textContent || '');
+            } else if (e.target.id === 'ocr-fix-breaks') {
+                const ta = document.getElementById('ocr-text');
+                if (ta) ta.value = this.fix_breaks(ta.value || '');
+            }
         });
     },
 
@@ -602,24 +633,11 @@ const ThreadReader = {
         }
         // Populate segmented tokens for selection
         this.populateGlossaryTokens(rawText || '');
-        // Bootstrap modal show
-        try {
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
-        } catch {
-            modalEl.style.display = 'block';
-        }
+        this._showModal('glossaryEditModal');
     },
 
     closeGlossaryModal() {
-        const modalEl = document.getElementById('glossaryEditModal');
-        if (!modalEl) return;
-        try {
-            const inst = bootstrap.Modal.getInstance(modalEl);
-            if (inst) inst.hide();
-        } catch {
-            modalEl.style.display = 'none';
-        }
+        this._hideModal('glossaryEditModal');
     },
 
     getGlossaryMap() {
@@ -656,6 +674,149 @@ const ThreadReader = {
             console.error('Failed to save glossary:', e);
             this.showNotification('Failed to save glossary', 'danger');
         }
+    },
+
+    // ===== OCR helpers =====
+    ensureWsrvProxiedUrl(src) {
+        if (!src) return src;
+        try {
+            const u = new URL(src, window.location.origin);
+            // Already proxied via wsrv
+            if (u.hostname.includes('wsrv.nl')) return src;
+            const original = u.href;
+            return `https://wsrv.nl/?url=${encodeURIComponent(original)}`;
+        } catch {
+            // Fallback: assume src is absolute
+            return `https://wsrv.nl/?url=${encodeURIComponent(src)}`;
+        }
+    },
+
+    lastOcrImageUrl: null,
+
+    async openOcrModal(imgSrc) {
+        const modalEl = document.getElementById('ocrModal');
+        if (!modalEl) return;
+        const ta = document.getElementById('ocr-text');
+        const out = document.getElementById('ocr-translation');
+        if (ta) ta.value = 'Recognizing...';
+        if (out) out.textContent = 'Waiting...';
+        this._showModal('ocrModal');
+
+        const proxiedUrl = this.ensureWsrvProxiedUrl(imgSrc);
+        this.lastOcrImageUrl = proxiedUrl;
+        await this.runOcr(proxiedUrl);
+        // Auto-translate after OCR
+        await this.translateOcrText();
+    },
+
+    async runOcr(imageUrl) {
+        try {
+            if (!window.Tesseract || !Tesseract.recognize) {
+                console.warn('Tesseract not loaded');
+                return;
+            }
+            const ta = document.getElementById('ocr-text');
+            if (ta) ta.value = 'Recognizing with Tesseract...';
+            const progressEl = document.getElementById('ocr-progress');
+            if (progressEl) progressEl.style.width = '0%';
+            const res = await Tesseract.recognize(imageUrl, 'chi_sim', {
+                logger: (m) => {
+                    if (m && typeof m.progress === 'number' && progressEl) {
+                        const pct = Math.max(0, Math.min(100, Math.round(m.progress * 100)));
+                        progressEl.style.width = pct + '%';
+                    }
+                }
+            });
+            let text = res && res.data && res.data.text ? res.data.text : '';
+            // Normalize OCR output
+            text = text.replace(/ +/g, '');
+            text = text.split('\n').map(l => l.trim()).filter(Boolean).join('\n');
+            if (ta) ta.value = text || '';
+            if (progressEl) progressEl.style.width = '100%';
+        } catch (err) {
+            console.error('OCR error:', err);
+            const ta = document.getElementById('ocr-text');
+            if (ta) ta.value = '[OCR error]';
+        }
+    },
+
+    async translateOcrText() {
+        try {
+            const ta = document.getElementById('ocr-text');
+            const out = document.getElementById('ocr-translation');
+            if (!ta || !out) return;
+            const text = (ta.value || '').trim();
+            if (!text) { out.textContent = ''; return; }
+            out.textContent = 'Translating...';
+            const results = await TranslationUtil.translateVietphrase([text]);
+            const translated = Array.isArray(results) && results[0]?.translations?.[0]?.text ? results[0].translations[0].text : '';
+            out.textContent = translated || '';
+        } catch (e) {
+            console.error('OCR translate error:', e);
+            const out = document.getElementById('ocr-translation');
+            if (out) out.textContent = '[Translate error]';
+        }
+    },
+
+    // Modal helpers: ensure aria-hidden is correct to avoid a11y warnings
+    _showModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const hasBootstrap = typeof window !== 'undefined' && window.bootstrap && typeof window.bootstrap.Modal === 'function';
+        if (hasBootstrap) {
+            const inst = window.bootstrap.Modal.getOrCreateInstance(el);
+            inst.show();
+            return;
+        }
+        // Fallback minimal show: sync aria attributes
+        el.classList.add('show');
+        el.style.display = 'block';
+        el.setAttribute('aria-modal', 'true');
+        el.removeAttribute('aria-hidden');
+        document.body.classList.add('modal-open');
+        let backdrop = document.getElementById(id + '-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = id + '-backdrop';
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+        }
+    },
+    _hideModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const hasBootstrap = typeof window !== 'undefined' && window.bootstrap && typeof window.bootstrap.Modal === 'function';
+        if (hasBootstrap) {
+            const inst = window.bootstrap.Modal.getOrCreateInstance(el);
+            inst.hide();
+            return;
+        }
+        // Fallback hide
+        el.classList.remove('show');
+        el.style.display = 'none';
+        el.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        const backdrop = document.getElementById(id + '-backdrop');
+        if (backdrop) backdrop.remove();
+    },
+
+    // Fix broken lines heuristically (merge short lines until punctuation)
+    fix_breaks(input, min_invalid = 15) {
+        const lines = String(input || '').split(/\r\n?|\n/);
+        let output = '';
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if (!line) continue;
+            output += line;
+            if (this.is_full_line(line, min_invalid)) output += '\n';
+        }
+        return output;
+    },
+    is_full_line(line, min_invalid = 15) {
+        if (line.length < min_invalid) return true;
+        // ends with common punctuation
+        const TRAIL_PUNCT_RE = /[。．！？!?…。，,；;：:）)〉》»”'’」】］\]]\s*$/u;
+        return TRAIL_PUNCT_RE.test(line);
     },
 
     // ===== Jieba WASM loader (borrowed approach from page-translate.js) =====

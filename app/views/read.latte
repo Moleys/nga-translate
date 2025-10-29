@@ -73,7 +73,47 @@
   </div>
   </div>
 
+<!-- OCR Modal -->
+<div class="modal fade" id="ocrModal" tabindex="-1" aria-labelledby="ocrModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="ocrModalLabel">Image OCR</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <div class="progress" style="height: 6px;">
+            <div id="ocr-progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">OCR Text</label>
+          <textarea id="ocr-text" class="form-control" rows="6" placeholder="Recognizing..." spellcheck="false"></textarea>
+        </div>
+        <div class="mb-2 d-flex gap-2 flex-wrap">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="ocr-copy-text">Copy Text</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="ocr-fix-breaks">Fix Line Breaks</button>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="ocr-translate-btn">Translate</button>
+        </div>
+        <hr>
+        <div>
+          <label class="form-label">Translation</label>
+          <div id="ocr-translation" class="border rounded p-3" style="min-height: 120px; white-space: pre-wrap;">Waiting...</div>
+          <div class="mt-2 d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="ocr-copy-translation">Copy Translation</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <script src="/assets/js/emoticons.js?v=20251029N"></script>
+<script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 <script src="/assets/js/read.js?v=20251029T"></script>
 {/block}
