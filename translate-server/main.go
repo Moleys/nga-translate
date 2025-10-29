@@ -86,7 +86,8 @@ type TranslationData struct {
 
 // Request/Response types
 type TranslateRequest struct {
-	Text string `json:"text"`
+    Text string `json:"text"`
+    Glossary []GlossaryEntry `json:"glossary,omitempty"`
 }
 
 type TranslateResponse struct {
@@ -95,8 +96,9 @@ type TranslateResponse struct {
 }
 
 type TranslateItem struct {
-	Text  string `json:"text,omitempty"`
-	Text2 string `json:"Text,omitempty"`
+    Text  string `json:"text,omitempty"`
+    Text2 string `json:"Text,omitempty"`
+    Glossary []GlossaryEntry `json:"glossary,omitempty"`
 }
 
 type DetectedLanguage struct {
@@ -116,9 +118,10 @@ type TranslateResult struct {
 }
 
 type Translate4Request struct {
-	Text       string `json:"text"`
-	SourceLang string `json:"source_lang"`
-	TargetLang string `json:"target_lang"`
+    Text       string `json:"text"`
+    SourceLang string `json:"source_lang"`
+    TargetLang string `json:"target_lang"`
+    Glossary   []GlossaryEntry `json:"glossary,omitempty"`
 }
 
 type Translate4Response struct {
@@ -142,6 +145,28 @@ var (
 	converter        *ChineseConverter
 	translationData  *TranslationData
 )
+
+// Glossary entry struct provided by clients
+type GlossaryEntry struct {
+    Raw  string `json:"raw"`
+    Mean string `json:"mean"`
+}
+
+// Build a transient trie from glossary entries with highest priority.
+// Raw keys are converted to Simplified to match scanning input.
+func buildGlossaryTrie(entries []GlossaryEntry) *Trie {
+    if len(entries) == 0 {
+        return nil
+    }
+    t := NewTrie()
+    for _, e := range entries {
+        if e.Raw == "" { continue }
+        key := e.Raw
+        if converter != nil { key = converter.toSimplified(key) }
+        t.Insert(key, e.Mean)
+    }
+    return t
+}
 
 func main() {
 	// Initialize converter
@@ -393,8 +418,8 @@ func (c *ChineseConverter) toSimplified(text string) string {
 	return result.String()
 }
 
-func convertToSinoVietnamese(text string, data *TranslationData) string {
-	text = replaceSpecialChars(text)
+func convertToSinoVietnamese(text string, data *TranslationData, glossaryTrie *Trie) string {
+    text = replaceSpecialChars(text)
 	
 	tokens := []string{}
 	runes := []rune(text)
@@ -421,14 +446,23 @@ func convertToSinoVietnamese(text string, data *TranslationData) string {
 				tokens = append(tokens, string(chunk[start:j]))
 				continue
 			}
+            
+            // Check Glossary first (highest priority for this request)
+            chunkText := string(chunk[j:])
+            if glossaryTrie != nil {
+                if prefix, value := glossaryTrie.FindLongestPrefix(chunkText); prefix != "" {
+                    tokens = append(tokens, value)
+                    j += len([]rune(prefix))
+                    continue
+                }
+            }
 
-			// Check Names2 first (highest priority)
-			chunkText := string(chunk[j:])
-			if prefix, value := data.Names2.FindLongestPrefix(chunkText); prefix != "" {
-				tokens = append(tokens, value)
-				j += len([]rune(prefix))
-				continue
-			}
+            // Check Names2 next (global high priority)
+            if prefix, value := data.Names2.FindLongestPrefix(chunkText); prefix != "" {
+                tokens = append(tokens, value)
+                j += len([]rune(prefix))
+                continue
+            }
 
 			// Check Names
 			if prefix, value := data.Names.FindLongestPrefix(chunkText); prefix != "" {
@@ -565,28 +599,29 @@ func containsNonWordChar(token string, nonWord map[rune]bool) bool {
 	return false
 }
 
-func translateText(text string) (string, string) {
-	if chineseRegex.MatchString(text) {
-		simplifiedText := converter.toSimplified(text)
-		translatedText := convertToSinoVietnamese(simplifiedText, translationData)
-		return translatedText, "zh"
-	}
-	return text, "und"
+func translateText(text string, glossaryTrie *Trie) (string, string) {
+    if chineseRegex.MatchString(text) {
+        simplifiedText := converter.toSimplified(text)
+        translatedText := convertToSinoVietnamese(simplifiedText, translationData, glossaryTrie)
+        return translatedText, "zh"
+    }
+    return text, "und"
 }
 
 func handleTranslate(c fiber.Ctx) error {
 	c.Set("Content-Type", "application/json")
 
 	var req TranslateRequest
-	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
-	}
+    if err := c.Bind().JSON(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
+    }
 
 	if req.Text == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "No text provided"})
 	}
 
-	translatedText, _ := translateText(req.Text)
+    gTrie := buildGlossaryTrie(req.Glossary)
+    translatedText, _ := translateText(req.Text, gTrie)
 
 	response := TranslateResponse{
 		TranslatedText: translatedText,
@@ -598,10 +633,10 @@ func handleTranslate(c fiber.Ctx) error {
 func handleTranslate2(c fiber.Ctx) error {
 	c.Set("Content-Type", "application/json")
 
-	var items []TranslateItem
-	if err := c.Bind().JSON(&items); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
-	}
+    var items []TranslateItem
+    if err := c.Bind().JSON(&items); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
+    }
 
 	var results []TranslateResult
 
@@ -618,7 +653,8 @@ func handleTranslate2(c fiber.Ctx) error {
 			continue
 		}
 
-		translatedText, lang := translateText(text)
+        gTrie := buildGlossaryTrie(item.Glossary)
+        translatedText, lang := translateText(text, gTrie)
 
 		results = append(results, TranslateResult{
 			DetectedLanguage: DetectedLanguage{
@@ -645,7 +681,7 @@ func handleTranslate3(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "No text provided"})
 	}
 
-	translatedText, _ := translateText(text)
+    translatedText, _ := translateText(text, nil)
 
 	messageLines := strings.Split(text, "\n")
 	responseLines := strings.Split(translatedText, "\n")
@@ -683,9 +719,9 @@ func handleTranslate4(c fiber.Ctx) error {
 	}
 
 	var req Translate4Request
-	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
-	}
+    if err := c.Bind().JSON(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
+    }
 
 	if req.Text == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "text is required"})
@@ -697,7 +733,8 @@ func handleTranslate4(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "target_lang is required"})
 	}
 
-	translatedText, _ := translateText(req.Text)
+    gTrie := buildGlossaryTrie(req.Glossary)
+    translatedText, _ := translateText(req.Text, gTrie)
 
 	rand.Seed(time.Now().UnixNano())
 	randomID := time.Now().Unix()*1000 + rand.Int63n(1000)

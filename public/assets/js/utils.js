@@ -170,5 +170,56 @@ const Utils = {
         }
 
         return result;
+    },
+
+    /**
+     * Strip all BBCode ([tag], [/tag], [tag=...]) and HTML tags from content
+     * Optionally trims whitespace and normalizes line breaks
+     * @param {string} content
+     * @param {Object} [opts]
+     * @param {boolean} [opts.trim=true]
+     * @returns {string}
+     */
+    stripBBCodeAndHtml(content, opts = {}) {
+        if (!content) return '';
+        const { trim = true } = opts;
+
+        // Remove special blocks first where content should be removed entirely
+        let text = String(content);
+        // Remove [comment]...[/comment] fully
+        text = text.replace(/\[comment[^\]]*\][\s\S]*?\[\/comment\]/gi, '');
+        // Remove [fixsize] opening tags
+        text = text.replace(/\[fixsize[^\]]*\]/gi, '');
+        // Remove media blocks entirely (including their inner URLs/content)
+        text = text.replace(/\[img\][\s\S]*?\[\/img\]/gi, '');
+        text = text.replace(/\[flash\][\s\S]*?\[\/flash\]/gi, '');
+        // Remove [style]...[/style] but keep inner text via existing util
+        text = this.removeStyleBlocks(text);
+        // Remove emoticons like [s:cat:name]
+        text = text.replace(/\[s:[^:\]]+:[^\]]+\]/gi, '');
+
+        // Remove all remaining BBCode tags like [b], [/b], [url=...], [img]...[/img]
+        text = text.replace(/\[(?:\/)?[a-z0-9_:.-]+(?:=[^\]]*)?\]/gi, '');
+
+        // Remove any residual HTML tags
+        text = text.replace(/<[^>]*>/g, '');
+
+        // Remove standalone URLs to avoid polluting raw lines
+        text = text.replace(/https?:\/\/\S+/g, '');
+
+        // Decode HTML entities via textarea trick
+        try {
+            const ta = document.createElement('textarea');
+            ta.innerHTML = text;
+            text = ta.value;
+        } catch {}
+
+        // Normalize line endings
+        text = text.replace(/\r\n?/g, '\n');
+        // Collapse excessive blank lines to single blanks
+        text = text.replace(/\n{3,}/g, '\n\n');
+        // Trim spaces around line content
+        text = text.split('\n').map(l => l.trim()).join('\n');
+        return trim ? text.trim() : text;
     }
 };

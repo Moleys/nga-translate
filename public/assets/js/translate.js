@@ -239,8 +239,18 @@ const TranslationUtil = {
         if (!texts || texts.length === 0) return [];
 
         try {
-            // Format texts for VietPhrase API
-            const requestBody = texts.map(text => ({ text: text }));
+            // Load glossary list from localStorage
+            const glossary = (() => {
+                try {
+                    const raw = localStorage.getItem('nga_glossary');
+                    const arr = JSON.parse(raw || '[]');
+                    if (Array.isArray(arr)) return arr;
+                } catch {}
+                return [];
+            })();
+
+            // Format texts for VietPhrase API (add glossary along each item)
+            const requestBody = texts.map(text => ({ text: text, glossary }));
 
             const response = await fetch('http://localhost:5005/translate2?api-version=3.0&to=vi&from=zh-Hans', {
                 method: 'POST',

@@ -18,6 +18,7 @@ const ThreadReader = {
             this.loadPosts();
             this.setupPaginationHandlers();
             this.setupBookmarkButton();
+            this.setupGlobalModalHandlers();
         }
     },
 
@@ -110,6 +111,96 @@ const ThreadReader = {
         }
     },
 
+    // Extract raw text lines by splitting original content at <br> and then stripping BBCode/HTML per-line
+    extractRawLines(bbcode) {
+        const src = String(bbcode || '');
+        // Split by <br/> boundaries from original API content
+        const parts = src.split(/<br\s*\/?>(?![^<]*>)/i);
+        // Clean each part separately so line alignment matches display segments
+        return parts.map(p => Utils.stripBBCodeAndHtml(p || '', { trim: true }));
+    },
+    // Align raw text to match number of display segments using punctuation-aware heuristics
+    alignRawToSegments(segCount, rawLines) {
+        if (segCount <= 0) return [];
+        const safeLines = Array.isArray(rawLines) ? rawLines.filter(l => typeof l === 'string') : [];
+        if (safeLines.length === segCount) return safeLines;
+
+        const base = safeLines.join('\n').trim();
+        if (!base) return Array(segCount).fill('');
+
+        // Prefer splitting by strong sentence punctuation first
+        const sentenceDelims = /([。！？?!])/g; // keep delimiters
+        const weakDelims = /([；;，、])/g;
+
+        const splitByDelim = (text, regex) => {
+            const parts = [];
+            let last = 0;
+            let m;
+            while ((m = regex.exec(text)) !== null) {
+                const end = regex.lastIndex;
+                parts.push(text.slice(last, end));
+                last = end;
+            }
+            if (last < text.length) parts.push(text.slice(last));
+            return parts.map(p => p.trim()).filter(Boolean);
+        };
+
+        let units = splitByDelim(base, sentenceDelims);
+        if (units.length < segCount) {
+            // Further split using weaker punctuation
+            const tmp = [];
+            units.forEach(u => {
+                const subs = splitByDelim(u, weakDelims);
+                if (subs.length > 1) tmp.push(...subs); else tmp.push(u);
+            });
+            units = tmp;
+        }
+
+        if (units.length >= segCount) {
+            // Merge tail to fit segCount
+            const out = [];
+            for (let i = 0; i < segCount - 1; i++) out.push(units[i] || '');
+            out.push(units.slice(segCount - 1).join(' ').trim());
+            return out;
+        }
+
+        // Fallback: split by approximate equal lengths
+        const total = base.length;
+        const out = [];
+        let start = 0;
+        for (let i = 1; i <= segCount; i++) {
+            const target = Math.round(i * total / segCount);
+            let end = target;
+            // try to snap to nearest punctuation within window
+            const window = 12;
+            let snap = -1;
+            for (let d = 0; d <= window; d++) {
+                const idx1 = target - d;
+                const idx2 = target + d;
+                const isPunc = (ch) => '。！？?!；;,、'.includes(ch);
+                if (idx1 > start && idx1 < total && isPunc(base[idx1])) { snap = idx1 + 1; break; }
+                if (idx2 > start && idx2 < total && isPunc(base[idx2])) { snap = idx2 + 1; break; }
+            }
+            if (snap !== -1) end = snap;
+            out.push(base.slice(start, end).trim());
+            start = end;
+        }
+        return out;
+    },
+
+    // Wrap parsed HTML content into per-line blocks (.comment-line) with per-line data-raw
+    wrapParsedContentWithLines(parsedHtml, rawLines) {
+        if (!parsedHtml) return '';
+        const segments = parsedHtml.split(/<br\s*\/?>(?![^<]*>)/i); // split on <br> not inside tags
+        const alignedRaw = this.alignRawToSegments(segments.length, rawLines);
+        const blocks = segments.map((seg, idx) => {
+            const raw = (alignedRaw && alignedRaw[idx] !== undefined) ? alignedRaw[idx] : '';
+            const rawEsc = Utils.escapeHtml(raw);
+            return `<div class="comment-line" data-line-index="${idx}" data-raw="${rawEsc}">${seg}</div>`;
+        });
+        return blocks.join('');
+    },
+
     async translateAndRender(apiData) {
         // Save raw thread info BEFORE translation
         if (!this.rawThreadInfo || this.currentPage === 1) {
@@ -130,6 +221,22 @@ const ThreadReader = {
         }
 
         try {
+            // Preserve RAW Chinese content for posts and hot posts before any translation occurs
+            if (Array.isArray(apiData.result)) {
+                apiData.result.forEach(p => {
+                    if (typeof p._raw_content === 'undefined') {
+                        p._raw_content = p.content || '';
+                    }
+                });
+            }
+            if (Array.isArray(apiData.hot_post)) {
+                apiData.hot_post.forEach(p => {
+                    if (typeof p._raw_content === 'undefined') {
+                        p._raw_content = p.content || '';
+                    }
+                });
+            }
+
             // Collect all texts to translate
             let textsToTranslate = [];
             let textMap = [];
@@ -325,7 +432,9 @@ const ThreadReader = {
         posts.forEach((post, index) => {
             const author = post.author?.username || post.author || 'Unknown';
             const postDate = post.postdate || '';
-            const content = this.parseContent(post.content || '', attachPrefix);
+            const contentParsed = this.parseContent(post.content || '', attachPrefix);
+            const rawLines = this.extractRawLines(post._raw_content || post.content || '');
+            const content = this.wrapParsedContentWithLines(contentParsed, rawLines);
             const floor = post.lou !== undefined ? post.lou : (this.currentPage - 1) * 20 + index;
             const pid = post.pid || '';
             const isOriginalPost = floor === 0;
@@ -384,7 +493,9 @@ const ThreadReader = {
         hotPosts.forEach((post, index) => {
             const author = post.author?.username || post.author || 'Unknown';
             const postDate = post.postdate || '';
-            const content = this.parseContent(post.content || '', attachPrefix);
+            const contentParsed = this.parseContent(post.content || '', attachPrefix);
+            const rawLines = this.extractRawLines(post._raw_content || post.content || '');
+            const content = this.wrapParsedContentWithLines(contentParsed, rawLines);
             const floor = post.lou || 0;
             const pid = post.pid || '';
             const voteGood = post.vote_good || 0;
@@ -427,7 +538,13 @@ const ThreadReader = {
         const postDate = result.postdate || '';
         const replies = result.replies || 0;
 
-        document.getElementById('thread-title').textContent = subject;
+        const titleEl = document.getElementById('thread-title');
+        titleEl.textContent = subject;
+        // Attach raw attribute (strip any potential tags from rawThreadInfo.subject)
+        try {
+            const rawSubject = Utils.stripBBCodeAndHtml(this.rawThreadInfo?.subject || subject || '');
+            titleEl.setAttribute('data-raw', rawSubject);
+        } catch {}
         document.title = `${subject} - NGA Forums`;
 
         document.getElementById('thread-info').innerHTML = `
@@ -450,6 +567,155 @@ const ThreadReader = {
         `;
 
         breadcrumb.innerHTML = breadcrumbHtml;
+    },
+
+    setupGlobalModalHandlers() {
+        // Save button handler for glossary modal
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'glossary-save-btn') {
+                const raw = document.getElementById('glossary-raw-text')?.textContent?.trim() || '';
+                const meaning = document.getElementById('glossary-meaning-input')?.value?.trim() || '';
+                if (!raw) return this.closeGlossaryModal();
+                this.saveToGlossary(raw, meaning);
+                this.closeGlossaryModal();
+            }
+        });
+
+        // Delegate click on any line to open edit modal (use line's own data-raw)
+        document.addEventListener('click', (e) => {
+            const lineEl = e.target.closest('.comment-line');
+            if (!lineEl) return;
+            const raw = lineEl.getAttribute('data-raw') || '';
+            this.openGlossaryModal(raw);
+        });
+    },
+
+    openGlossaryModal(rawText) {
+        const modalEl = document.getElementById('glossaryEditModal');
+        if (!modalEl) return;
+        const rawTarget = document.getElementById('glossary-raw-text');
+        const input = document.getElementById('glossary-meaning-input');
+        if (rawTarget) rawTarget.textContent = (rawText || '').trim();
+        if (input) {
+            // Prefill existing meaning if any
+            input.value = this.getGlossaryMap()[rawText] || '';
+        }
+        // Populate segmented tokens for selection
+        this.populateGlossaryTokens(rawText || '');
+        // Bootstrap modal show
+        try {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        } catch {
+            modalEl.style.display = 'block';
+        }
+    },
+
+    closeGlossaryModal() {
+        const modalEl = document.getElementById('glossaryEditModal');
+        if (!modalEl) return;
+        try {
+            const inst = bootstrap.Modal.getInstance(modalEl);
+            if (inst) inst.hide();
+        } catch {
+            modalEl.style.display = 'none';
+        }
+    },
+
+    getGlossaryMap() {
+        try {
+            const raw = localStorage.getItem('nga_glossary');
+            if (!raw) return {};
+            const arr = JSON.parse(raw);
+            const map = {};
+            if (Array.isArray(arr)) {
+                arr.forEach(it => {
+                    if (it && typeof it.raw === 'string') map[it.raw] = it.mean || '';
+                });
+            }
+            return map;
+        } catch { return {}; }
+    },
+
+    saveToGlossary(raw, mean) {
+        try {
+            const key = 'nga_glossary';
+            let arr = [];
+            try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
+            if (!Array.isArray(arr)) arr = [];
+            const idx = arr.findIndex(it => (it?.raw || '') === raw);
+            if (idx >= 0) {
+                arr[idx].mean = mean;
+            } else {
+                arr.push({ raw, mean });
+            }
+            localStorage.setItem(key, JSON.stringify(arr));
+            localStorage.setItem('nga_glossary_updated_at', String(Date.now()));
+            this.showNotification('Saved to glossary', 'success');
+        } catch (e) {
+            console.error('Failed to save glossary:', e);
+            this.showNotification('Failed to save glossary', 'danger');
+        }
+    },
+
+    // ===== Jieba WASM loader (borrowed approach from page-translate.js) =====
+    _jiebaCutInstance: null,
+    async _loadWasmJieba() {
+        try {
+            const { default: init, cut: jiebaCut } = await import('/assets/jieba-wasm-html/jieba_rs_wasm.js');
+            await init();
+            this._jiebaCutInstance = jiebaCut;
+        } catch (e) {
+            console.warn('Failed to init jieba wasm:', e);
+        }
+    },
+    async _ensureJieba() {
+        if (!this._jiebaCutInstance) {
+            await this._loadWasmJieba();
+        }
+        return !!this._jiebaCutInstance;
+    },
+    _segmentWithIntl(text) {
+        try {
+            if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+                const seg = new Intl.Segmenter('zh', { granularity: 'word' });
+                return Array.from(seg.segment(text)).map(s => s.segment).filter(t => t.trim());
+            }
+        } catch {}
+        // fallback per-char
+        return Array.from(text).filter(ch => ch.trim());
+    },
+    async segmentLine(text) {
+        if (!text) return [];
+        // Prefer jieba if available
+        if (await this._ensureJieba()) {
+            try { return this._jiebaCutInstance(text, true) || []; } catch {}
+        }
+        return this._segmentWithIntl(text);
+    },
+    async populateGlossaryTokens(text) {
+        const wrap = document.getElementById('glossary-token-list');
+        if (!wrap) return;
+        wrap.innerHTML = '<span class="text-muted">Segmenting...</span>';
+        const tokens = await this.segmentLine(text);
+        if (!tokens || tokens.length === 0) {
+            wrap.innerHTML = '<span class="text-muted">No tokens</span>';
+            return;
+        }
+        const frag = document.createDocumentFragment();
+        tokens.forEach(tok => {
+            const span = document.createElement('span');
+            span.className = 'badge bg-light text-dark me-1 mb-1';
+            span.textContent = tok;
+            span.style.cursor = 'pointer';
+            span.addEventListener('click', () => {
+                const rawTarget = document.getElementById('glossary-raw-text');
+                if (rawTarget) rawTarget.textContent = tok;
+            });
+            frag.appendChild(span);
+        });
+        wrap.innerHTML = '';
+        wrap.appendChild(frag);
     },
 
     renderPagination() {
@@ -947,3 +1213,4 @@ document.addEventListener('DOMContentLoaded', () => {
         ThreadReader.init();
     }
 });
+

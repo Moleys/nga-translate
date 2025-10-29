@@ -50,6 +50,13 @@ Flight::route('/login', function() {
     ]);
 });
 
+// Glossary page
+Flight::route('/glossary', function() {
+    Flight::render('glossary.latte', [
+        'title' => 'Glossary - NGA'
+    ]);
+});
+
 // Forum detail page
 Flight::route('/forum/@fid', function($fid) {
     Flight::render('forum.latte', [

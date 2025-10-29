@@ -454,6 +454,16 @@ footer {
     box-shadow: var(--shadow-sm);
 }
 
+/* Clickable comment lines for glossary editing */
+.comment-line {
+    cursor: pointer;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+.comment-line:hover {
+    background-color: rgba(90, 157, 138, 0.08);
+}
+
 /* Responsive Improvements */
 @media (max-width: 576px) {
     :root {

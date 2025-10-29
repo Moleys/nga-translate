@@ -43,6 +43,37 @@
 </div>
 
 
+<!-- Glossary Edit Modal -->
+<div class="modal fade" id="glossaryEditModal" tabindex="-1" aria-labelledby="glossaryEditModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="glossaryEditModalLabel">Edit Glossary</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+            <small class="text-muted">Original</small>
+            <div id="glossary-raw-text" class="border rounded p-2" style="min-height: 38px; white-space: pre-wrap;"></div>
+        </div>
+        <div>
+            <label for="glossary-meaning-input" class="form-label">Translation</label>
+            <input type="text" id="glossary-meaning-input" class="form-control" placeholder="Enter translation">
+        </div>
+        <div class="mt-3">
+            <small class="text-muted d-block mb-1">Tokens (Jieba/Intl)</small>
+            <div id="glossary-token-list"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="glossary-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+
 <script src="/assets/js/emoticons.js?v=20251029N"></script>
 <script src="/assets/js/read.js?v=20251029T"></script>
 {/block}
