@@ -193,13 +193,37 @@ const ThreadReader = {
     // Wrap parsed HTML content into per-line blocks (.comment-line) with per-line data-raw
     wrapParsedContentWithLines(parsedHtml, rawLines) {
         if (!parsedHtml) return '';
-        const segments = parsedHtml.split(/<br\s*\/?>(?![^<]*>)/i); // split on <br> not inside tags
+
+        // Extract blockquotes first to preserve their internal structure
+        const blockquotes = [];
+        const placeholders = [];
+        let workingHtml = parsedHtml;
+
+        // Replace blockquotes with placeholders
+        workingHtml = workingHtml.replace(/<blockquote[^>]*>[\s\S]*?<\/blockquote>/gi, (match, offset) => {
+            const placeholder = `__BLOCKQUOTE_${blockquotes.length}__`;
+            blockquotes.push(match);
+            placeholders.push(placeholder);
+            return placeholder;
+        });
+
+        // Split remaining content by <br>
+        const segments = workingHtml.split(/<br\s*\/?>(?![^<]*>)/i);
         const alignedRaw = this.alignRawToSegments(segments.length, rawLines);
+
+        // Wrap each segment, restoring blockquotes
         const blocks = segments.map((seg, idx) => {
+            let content = seg;
+            // Restore blockquotes in this segment
+            blockquotes.forEach((bq, bqIdx) => {
+                content = content.replace(placeholders[bqIdx], bq);
+            });
+
             const raw = (alignedRaw && alignedRaw[idx] !== undefined) ? alignedRaw[idx] : '';
             const rawEsc = Utils.escapeHtml(raw);
-            return `<div class="comment-line" data-line-index="${idx}" data-raw="${rawEsc}">${seg}</div>`;
+            return `<div class="comment-line" data-line-index="${idx}" data-raw="${rawEsc}">${content}</div>`;
         });
+
         return blocks.join('');
     },
 
@@ -1444,15 +1468,10 @@ const ThreadReader = {
             return match;
         });
 
-        // Parse [b]Reply to [pid]...[/pid] Post by [uid]...[/uid] (date)[/b] pattern
-        // Use [\s\S]*? to match any character including newlines
-        const replyToPattern = /\[b\]Reply to \[pid=([^\]]+)\]([\s\S]*?)\[\/pid\] Post by \[uid=(\d+)\]([\s\S]*?)\[\/uid\]\s*\(([^)]+)\)\[\/b\]/g;
-        if (/\[b\]Reply to \[pid=/.test(parsed)) {
-            console.log('[DEBUG] Found Reply-to pattern in content');
-        }
-        parsed = parsed.replace(replyToPattern,
+        // Parse reply-to pattern OUTSIDE quote blocks (format: <b>Reply to [pid]...[/pid] Post by [uid]...[/uid] (date)</b>)
+        // This pattern has <b> tags (not [b]), no colon after date, and "Reply to" instead of just "Reply"
+        parsed = parsed.replace(/<b>Reply to \[pid=([^\]]+)\](.*?)\[\/pid\]\s+Post by \[uid=(\d+)\](.*?)\[\/uid\]\s*\(([^)]+)\)<\/b>/g,
             (match, pidData, pidText, uid, username, date) => {
-                console.log('[DEBUG] Replacing Reply-to:', {pidData, username, date});
                 const parts = pidData.split(',');
                 const pid = parts[0];
                 const tid = parts[1] || '';
@@ -1462,9 +1481,9 @@ const ThreadReader = {
                 const safeDate = Utils.escapeHtml(date);
 
                 if (tid) {
-                    return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                    return `<div class="reply-to-header mb-2"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
                 }
-                return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
+                return `<div class="reply-to-header mb-2"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
             }
         );
 
@@ -1479,13 +1498,20 @@ const ThreadReader = {
                 return `<a href="/thread/${safeTid}" class="quote-reply-link" title="View thread">${safeText}</a>`;
             });
 
-            // Parse "Reply[/pid] [b]Post by [uid]...[/uid] (date):[/b]" pattern in quote (same format as outside)
-            if (/\[pid=.*?\[b\]Post by/.test(quoteParsed)) {
-                console.log('[DEBUG] Found Reply pattern in quote block');
+            // Parse reply header FIRST (before parsing individual [pid] and [uid] tags)
+            // Pattern: [pid=...]text[/pid]<b>Post by[uid=...]username[/uid](date):</b>
+            // NOTE: No spaces required because translation may remove them
+            console.log('[DEBUG] Quote content before header parse:', quoteParsed.substring(0, 200));
+            const headerPattern = /\[pid=([^\]]+)\](.*?)\[\/pid\]\s*<b>Post by\s*\[uid=(\d+)\](.*?)\[\/uid\]\s*\(([^)]+)\):<\/b>/g;
+            const headerMatches = quoteParsed.match(headerPattern);
+            if (headerMatches) {
+                console.log('[DEBUG] Found reply header in quote:', headerMatches);
+            } else {
+                console.log('[DEBUG] NO header match found in quote');
             }
-            quoteParsed = quoteParsed.replace(/\/pid=([^\]]+)\](.*?)\[\/pid\]\s+\[b\]Post by \[uid=(\d+)\](.*?)\[\/uid\]\s*\(([^)]+)\):\[\/b\]/g,
+            quoteParsed = quoteParsed.replace(headerPattern,
                 (m, pidData, pidText, uid, username, date) => {
-                    console.log('[DEBUG] Replacing Reply in quote:', {pidData, username, date});
+                    console.log('[DEBUG] Replacing header:', {pidData, pidText, uid, username, date});
                     const parts = pidData.split(',');
                     const pid = parts[0];
                     const tid = parts[1] || '';
@@ -1495,13 +1521,13 @@ const ThreadReader = {
                     const safeDate = Utils.escapeHtml(date);
 
                     if (tid) {
-                        return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                        return `<div class="reply-to-header mb-2"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
                     }
-                    return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
+                    return `<div class="reply-to-header mb-2"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
                 }
             );
 
-            // Parse remaining [pid] inside quote - USE BADGES like outside quote
+            // Parse remaining [pid] inside quote (after reply header is processed)
             quoteParsed = quoteParsed.replace(/\[pid=([^\]]+)\](.*?)\[\/pid\]/g, (m, pidData, text) => {
                 const parts = pidData.split(',');
                 const pid = parts[0];
@@ -1516,7 +1542,7 @@ const ThreadReader = {
                 return `<span class="badge bg-secondary">${safeText}</span>`;
             });
 
-            // Parse [uid] inside quote - USE BADGES like outside quote
+            // Parse [uid] inside quote (after reply header is processed)
             quoteParsed = quoteParsed.replace(/\[uid=(\d+)\](.*?)\[\/uid\]/g, (m, uid, username) => {
                 const safeUsername = Utils.escapeHtml(username);
                 const safeUid = Utils.escapeHtml(uid);
@@ -1526,6 +1552,7 @@ const ThreadReader = {
             // Parse [b] tags inside quote
             quoteParsed = quoteParsed.replace(/\[b\]([\s\S]*?)\[\/b\]/g, '<strong>$1</strong>');
 
+            // Return parsed content wrapped in blockquote (quote tags converted to HTML here)
             return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 bg-light">${quoteParsed}</blockquote>`;
         });
 
