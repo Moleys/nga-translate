@@ -193,7 +193,9 @@ const ThreadReader = {
     // Wrap parsed HTML content into per-line blocks (.comment-line) with per-line data-raw
     wrapParsedContentWithLines(parsedHtml, rawLines) {
         if (!parsedHtml) return '';
-        const segments = parsedHtml.split(/<br\s*\/?>(?![^<]*>)/i); // split on <br> not inside tags
+        let segments = parsedHtml.split(/<br\s*\/?>(?![^<]*>)/i); // split on <br> not inside tags
+        // Filter out empty/whitespace-only segments to prevent misaligned data-raw attributes
+        segments = segments.filter(seg => seg.trim() !== '');
         const alignedRaw = this.alignRawToSegments(segments.length, rawLines);
         const blocks = segments.map((seg, idx) => {
             const raw = (alignedRaw && alignedRaw[idx] !== undefined) ? alignedRaw[idx] : '';
@@ -1400,6 +1402,11 @@ const ThreadReader = {
 
         let parsed = content;
 
+        // DEBUG: Log raw content if it contains quote or reply patterns
+        if (/\[quote\]|\[b\].*?Reply/i.test(content)) {
+            console.log('[DEBUG] Raw BBCode content:', content.substring(0, 500));
+        }
+
         // Add CORS proxy to video URLs (src and poster attributes)
         const videoProxyUrl = 'https://cors.moldich.eu.org/?q=';
 
@@ -1444,15 +1451,20 @@ const ThreadReader = {
             return match;
         });
 
-        // Parse [b]Reply to [pid]...[/pid] Post by [uid]...[/uid] (date)[/b] pattern
-        // Use [\s\S]*? to match any character including newlines
-        const replyToPattern = /\[b\]Reply to \[pid=([^\]]+)\]([\s\S]*?)\[\/pid\] Post by \[uid=(\d+)\]([\s\S]*?)\[\/uid\]\s*\(([^)]+)\)\[\/b\]/g;
-        if (/\[b\]Reply to \[pid=/.test(parsed)) {
-            console.log('[DEBUG] Found Reply-to pattern in content');
+        // Parse BOTH [b]Reply to... and <b>Reply to... patterns (NGA API returns mixed format)
+        // BBCode pattern: [b]Reply to [pid]...[/pid] Post by [uid]...[/uid] (date)[/b]
+        const replyToPatternBBCode = /\[b\]Reply\s+to\s+\[pid=([^\]]+)\]([\s\S]*?)\[\/pid\]\s+Post\s+by\s+\[uid=(\d+)\]([\s\S]*?)\[\/uid\]\s*\(([^)]+)\):?\s*\[\/b\]/g;
+        // HTML pattern: <b>Post by [uid]...[/uid] (date):</b> (inside quotes from API)
+        const replyToPatternHTML = /<b>Post\s+by\s+\[uid=(\d+)\]([\s\S]*?)\[\/uid\]\s*\(([^)]+)\):?\s*<\/b>/g;
+
+        if (/\[b\]Reply\s+to\s+\[pid=/.test(parsed)) {
+            console.log('[DEBUG] Found Reply-to BBCode pattern in content');
         }
-        parsed = parsed.replace(replyToPattern,
+
+        // Parse BBCode pattern first
+        parsed = parsed.replace(replyToPatternBBCode,
             (match, pidData, pidText, uid, username, date) => {
-                console.log('[DEBUG] Replacing Reply-to:', {pidData, username, date});
+                console.log('[DEBUG] Replacing Reply-to BBCode:', {pidData, username, date, match});
                 const parts = pidData.split(',');
                 const pid = parts[0];
                 const tid = parts[1] || '';
@@ -1461,10 +1473,21 @@ const ThreadReader = {
                 const safeUsername = Utils.escapeHtml(username);
                 const safeDate = Utils.escapeHtml(date);
 
+                // CRITICAL: Add <br/> after reply-to-header to ensure it's on separate line
                 if (tid) {
-                    return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                    return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div><br/>`;
                 }
-                return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
+                return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div><br/>`;
+            }
+        );
+
+        // Parse HTML pattern (inside quotes from API)
+        parsed = parsed.replace(replyToPatternHTML,
+            (match, uid, username, date) => {
+                console.log('[DEBUG] Replacing Reply-to HTML:', {uid, username, date, match});
+                const safeUsername = Utils.escapeHtml(username);
+                const safeDate = Utils.escapeHtml(date);
+                return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Post by <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
             }
         );
 
@@ -1525,6 +1548,10 @@ const ThreadReader = {
 
             // Parse [b] tags inside quote
             quoteParsed = quoteParsed.replace(/\[b\]([\s\S]*?)\[\/b\]/g, '<strong>$1</strong>');
+
+            // CRITICAL FIX: Replace <br/> tags inside quote with space to prevent split on wrapParsedContentWithLines()
+            // This keeps quote as atomic block (single comment-line)
+            quoteParsed = quoteParsed.replace(/<br\s*\/?>/gi, ' ');
 
             return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 bg-light">${quoteParsed}</blockquote>`;
         });
