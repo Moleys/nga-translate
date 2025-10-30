@@ -52,18 +52,110 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="mb-2">
-            <small class="text-muted">Original</small>
-            <div id="glossary-raw-text" class="border rounded p-2" style="min-height: 38px; white-space: pre-wrap;"></div>
+        <!-- Context Display with Navigation Arrows -->
+        <div class="center frmUpdate mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <!-- Left arrows -->
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="glossary-prevLeft" title="Expand left">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="glossary-prevRight" title="Shrink left">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Middle text display with word segmentation -->
+                <div class="flex-grow-1 mx-2" style="font-size: 90%; overflow-x: auto; white-space: nowrap;">
+                    <span id="glossary-raw-left" style="color:#e7b3b3"></span>
+                    <span style="font-weight: bold; color:#fc5185;" id="glossary-raw-text"></span>
+                    <span id="glossary-raw-right" style="color:#e7b3b3"></span>
+                </div>
+
+                <!-- Right arrows -->
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="glossary-nextLeft" title="Shrink right">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="glossary-nextRight" title="Expand right">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-        <div>
-            <label for="glossary-meaning-input" class="form-label">Translation</label>
-            <input type="text" id="glossary-meaning-input" class="form-control" placeholder="Enter translation">
+        <hr class="my-2">
+
+        <!-- Word Suggestion Selector -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span id="glossary-word-suggestion" class="small flex-grow-1"></span>
+            <div class="d-flex gap-1">
+                <button type="button" class="btn btn-danger btn-sm p-1" title="Empty" onclick="ThreadReader.emptyGlossaryInput()">
+                    <i class="fa fa-eraser"></i>
+                </button>
+                <button type="button" class="btn btn-primary btn-sm p-1" title="Copy text raw" onclick="ThreadReader.copyGlossaryRaw()">
+                    <i class="fa fa-copy"></i>
+                </button>
+            </div>
         </div>
-        <div class="mt-3">
-            <small class="text-muted d-block mb-1">Tokens (Jieba/Intl)</small>
-            <div id="glossary-token-list"></div>
+
+        <!-- Translation Input -->
+        <textarea rows="2" class="w-100 mb-2" style="font-size:90%" id="glossary-meaning-input" placeholder="Enter translation"></textarea>
+
+        <!-- Dictionary Suggestions -->
+        <p class="small mb-2"><span id="glossary-dict-suggestion"></span></p>
+
+        <!-- Action Buttons -->
+        <div style="font-size:80%" class="mb-2">
+            <div class="d-flex flex-wrap align-items-center mb-1">
+                <div class="me-2"><i class="fa fa-text-height"></i> Capitalize:</div>
+                <div>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.setCapWords(1)">1</span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.setCapWords(2)">2</span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.setCapWords(3)">3</span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.setCapWords(30)">All</span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.setCapWords(0)">None</span>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center mb-1">
+                <div class="me-2"><i class="fa fa-language"></i> Translate:</div>
+                <div class="d-flex flex-wrap gap-1">
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.translateGlossaryVietPhrase()">
+                        <span>🇻🇳</span> VietPhrase
+                    </span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.translateGlossaryMoldich()">
+                        <span>🇯🇵</span> Moldich
+                    </span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.translateGlossaryGemini('vi')">
+                        <span>🇻🇳</span> Gemini
+                    </span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.translateGlossaryGemini('jp')">
+                        <span>🇯🇵</span> Gemini
+                    </span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.translateGlossaryGemini('en')">
+                        <span>🇺🇸</span> Gemini
+                    </span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.translateGlossaryGoogle('vi')">
+                        <span>🇻🇳</span> Google
+                    </span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.translateGlossaryGoogle('en')">
+                        <span>🇺🇸</span> Google
+                    </span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.translateGlossaryDeepL()">
+                        <span>🇺🇸</span> DeepL
+                    </span>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center">
+                <div class="me-2"><i class="fa fa-search"></i> Search:</div>
+                <div>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.openGoogleTranslate()">GTrans</span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.openGoogle()">Google</span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.openHanzii()">Hanzii</span>
+                    <span class="badge bg-info" style="cursor:pointer" onclick="ThreadReader.openMdbg()">Mdbg</span>
+                </div>
+            </div>
         </div>
+
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -71,7 +163,7 @@
       </div>
     </div>
   </div>
-  </div>
+</div>
 
 <!-- OCR Modal -->
 <div class="modal fade" id="ocrModal" tabindex="-1" aria-labelledby="ocrModalLabel" aria-hidden="true">

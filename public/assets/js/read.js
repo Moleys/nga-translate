@@ -60,7 +60,7 @@ const ThreadReader = {
             pageForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const input = document.getElementById('page-input');
-                const page = parseInt(input.value);
+                const page = parseInt(input.value);translateGlossaryGoogle
                 if (page && page >= 1 && page <= this.totalPages) {
                     this.goToPage(page);
                 } else {
@@ -573,7 +573,8 @@ const ThreadReader = {
         // Save button handler for glossary modal
         document.addEventListener('click', (e) => {
             if (e.target.id === 'glossary-save-btn') {
-                const raw = document.getElementById('glossary-raw-text')?.textContent?.trim() || '';
+                const middleSpan = document.getElementById('glossary-raw-text');
+                const raw = middleSpan?.textContent?.trim() || '';
                 const meaning = document.getElementById('glossary-meaning-input')?.value?.trim() || '';
                 if (!raw) return this.closeGlossaryModal();
                 this.saveToGlossary(raw, meaning);
@@ -621,19 +622,445 @@ const ThreadReader = {
         });
     },
 
+    // Global state for glossary modal
+    _glossaryFullText: '',
+    _glossaryStartIndex: 0,
+
     openGlossaryModal(rawText) {
         const modalEl = document.getElementById('glossaryEditModal');
         if (!modalEl) return;
+
+        // Store full text and reset index
+        this._glossaryFullText = (rawText || '').trim();
+        this._glossaryStartIndex = 0;
+
+        // Set initial selection (full text)
         const rawTarget = document.getElementById('glossary-raw-text');
+        const rawLeft = document.getElementById('glossary-raw-left');
+        const rawRight = document.getElementById('glossary-raw-right');
         const input = document.getElementById('glossary-meaning-input');
-        if (rawTarget) rawTarget.textContent = (rawText || '').trim();
+
+        if (rawTarget) rawTarget.textContent = this._glossaryFullText;
+        if (rawLeft) rawLeft.textContent = '';
+        if (rawRight) rawRight.textContent = '';
+
         if (input) {
             // Prefill existing meaning if any
-            input.value = this.getGlossaryMap()[rawText] || '';
+            input.value = this.getGlossaryMap()[this._glossaryFullText] || '';
         }
-        // Populate segmented tokens for selection
-        this.populateGlossaryTokens(rawText || '');
+
+        // Setup navigation handlers
+        this.setupGlossaryNavigationHandlers();
+
+        // Set translation suggestion and word segmentation
+        this.setGlossaryTranslationSuggestion();
+
         this._showModal('glossaryEditModal');
+    },
+
+    setupGlossaryNavigationHandlers() {
+        // Remove existing listeners to avoid duplicates
+        const prevLeft = document.getElementById('glossary-prevLeft');
+        const prevRight = document.getElementById('glossary-prevRight');
+        const nextLeft = document.getElementById('glossary-nextLeft');
+        const nextRight = document.getElementById('glossary-nextRight');
+
+        if (prevLeft) {
+            prevLeft.onclick = () => this.glossaryNavigate('prevLeft');
+        }
+        if (prevRight) {
+            prevRight.onclick = () => this.glossaryNavigate('prevRight');
+        }
+        if (nextLeft) {
+            nextLeft.onclick = () => this.glossaryNavigate('nextLeft');
+        }
+        if (nextRight) {
+            nextRight.onclick = () => this.glossaryNavigate('nextRight');
+        }
+    },
+
+    glossaryNavigate(direction) {
+        const leftSpan = document.getElementById('glossary-raw-left');
+        const middleSpan = document.getElementById('glossary-raw-text');
+        const rightSpan = document.getElementById('glossary-raw-right');
+
+        if (!leftSpan || !middleSpan || !rightSpan) return;
+
+        switch(direction) {
+            case 'prevLeft':
+                // Move left boundary left
+                if (leftSpan.textContent.length > 0) {
+                    this._glossaryStartIndex--;
+                    const lastChar = leftSpan.textContent.slice(-1);
+                    middleSpan.textContent = lastChar + middleSpan.textContent;
+                    leftSpan.textContent = leftSpan.textContent.slice(0, -1);
+                }
+                break;
+            case 'prevRight':
+                // Move left boundary right
+                if (middleSpan.textContent.length > 1) {
+                    this._glossaryStartIndex++;
+                    const firstChar = middleSpan.textContent.charAt(0);
+                    middleSpan.textContent = middleSpan.textContent.slice(1);
+                    leftSpan.textContent = leftSpan.textContent + firstChar;
+                }
+                break;
+            case 'nextLeft':
+                // Move right boundary left
+                if (middleSpan.textContent.length > 1) {
+                    const lastChar = middleSpan.textContent.slice(-1);
+                    middleSpan.textContent = middleSpan.textContent.slice(0, -1);
+                    rightSpan.textContent = lastChar + rightSpan.textContent;
+                }
+                break;
+            case 'nextRight':
+                // Move right boundary right
+                if (rightSpan.textContent.length > 0) {
+                    const firstChar = rightSpan.textContent.charAt(0);
+                    middleSpan.textContent = middleSpan.textContent + firstChar;
+                    rightSpan.textContent = rightSpan.textContent.slice(1);
+                }
+                break;
+        }
+
+        // Update translation suggestion after navigation
+        this.setGlossaryTranslationSuggestion();
+    },
+
+    setGlossaryIndexToText(start, end) {
+        end++;
+        this._glossaryStartIndex = start;
+        const fullText = this._glossaryFullText;
+        const slicedText = fullText.slice(start, end);
+
+        const leftSpan = document.getElementById('glossary-raw-left');
+        const middleSpan = document.getElementById('glossary-raw-text');
+        const rightSpan = document.getElementById('glossary-raw-right');
+
+        if (middleSpan) middleSpan.textContent = slicedText;
+        if (leftSpan) leftSpan.textContent = fullText.slice(0, start);
+        if (rightSpan) rightSpan.textContent = fullText.slice(end);
+
+        this.setGlossaryTranslationSuggestion();
+    },
+
+    async setGlossaryTranslationSuggestion() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        if (!middleSpan) return;
+
+        const selectedText = middleSpan.textContent || '';
+        if (!selectedText.trim()) return;
+
+        // Get translation suggestion from VietPhrase API
+        const translatedText = await this.translateTextVietPhrase(selectedText);
+        const input = document.getElementById('glossary-meaning-input');
+        if (input) input.value = translatedText;
+
+        // Perform word segmentation and create clickable suggestions
+        await this.cutGlossaryString();
+    },
+
+    async translateTextVietPhrase(text) {
+        try {
+            if (typeof TranslationUtil === 'undefined' || !TranslationUtil.translateVietphrase) {
+                console.warn('VietPhrase API not available');
+                return text;
+            }
+
+            const results = await TranslationUtil.translateVietphrase([text]);
+            if (results && results.length > 0 && results[0]?.translations?.[0]?.text) {
+                return results[0].translations[0].text;
+            }
+            return text;
+        } catch (error) {
+            console.error('VietPhrase translation error:', error);
+            return text;
+        }
+    },
+
+    async cutGlossaryString() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        if (!middleSpan) return;
+
+        const txtChinese = middleSpan.textContent || '';
+        if (!txtChinese.trim()) return;
+
+        // Segment the text
+        const segChinese = await this.segmentLine(txtChinese);
+
+        if (segChinese.length === 0) return;
+
+        // Word colors for visual segmentation (from edit-mode-form.js)
+        const WORD_COLORS = ["#7a57d1", "#2f89fc", "#aa530e", "#278ea5"];
+
+        // Build colored HTML with zuro class for tooltip
+        const spans = segChinese.map((word, index) => {
+            const color = WORD_COLORS[index % WORD_COLORS.length];
+            return `<span class="zuro" style="color:${color};" data-text="${Utils.escapeHtml(word)}">${Utils.escapeHtml(word)}</span>`;
+        });
+
+        // Update middle span with colored segments
+        middleSpan.innerHTML = spans.join('');
+
+        // Create word-by-word translation for suggestions
+        await this.setGlossaryWordSuggestions(segChinese, segChinese);
+    },
+
+    async setGlossaryWordSuggestions(inputText, segChinese) {
+        try {
+            // Translate each segment using VietPhrase API
+            const translatedResults = await TranslationUtil.translateVietphrase(segChinese);
+
+            const targetElement = document.getElementById('glossary-word-suggestion');
+            if (!targetElement) return;
+
+            targetElement.innerHTML = '';
+
+            // Create clickable word suggestions
+            let currentIndex = 0;
+            for (let i = 0; i < segChinese.length; i++) {
+                const result = translatedResults[i];
+                const word = result?.translations?.[0]?.text || segChinese[i];
+
+                if (!word.trim()) continue;
+
+                const mark = document.createElement('mark');
+                mark.className = 'badge bg-info';
+                mark.style.margin = '1px';
+                mark.style.fontSize = '80%';
+                mark.style.cursor = 'pointer';
+                mark.textContent = word.trim();
+
+                // Calculate positions for this segment
+                const start = this._glossaryStartIndex + currentIndex;
+                const end = start + segChinese[i].length - 1;
+
+                mark.onclick = () => {
+                    this.setGlossaryIndexToText(start, end);
+                };
+
+                currentIndex += segChinese[i].length;
+
+                targetElement.appendChild(mark);
+                targetElement.appendChild(document.createTextNode(' '));
+            }
+        } catch (error) {
+            console.error('Word suggestion error:', error);
+        }
+    },
+
+    // Utility functions for glossary modal
+    emptyGlossaryInput() {
+        const input = document.getElementById('glossary-meaning-input');
+        if (input) input.value = '';
+    },
+
+    copyGlossaryRaw() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        if (middleSpan) {
+            navigator.clipboard.writeText(middleSpan.textContent || '');
+        }
+    },
+
+    capWords(number, inputString) {
+        const words = inputString.split(" ");
+
+        if (number === 0) return inputString.toLowerCase();
+        if (number === 10)
+            return words
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+
+        for (let i = 0; i < words.length; i++) {
+            words[i] =
+            i < number
+                ? words[i].charAt(0).toUpperCase() + words[i].slice(1)
+                : words[i].toLowerCase();
+        }
+
+        return words.join(" ");
+    },
+
+
+    setCapWords(mode) {
+        const input = document.getElementById('glossary-meaning-input');
+        if (!input) return;
+
+        let value = input.value;
+        switch(mode) {
+            case 1:
+                // Capitalize first letter
+                input.value = this.capWords(1, value);
+                break;
+            case 2:
+                // Title Case (capitalize each word, lowercase rest)
+                input.value = this.capWords(2, value);
+                break;
+            case 3:
+                // Capitalize Each Word (preserve case of rest)
+                input.value = this.capWords(3, value);
+                break;
+            case 30:
+                // ALL UPPERCASE
+                input.value = this.capWords(30, value);
+                break;
+            case 0:
+                // all lowercase
+                input.value = this.capWords(0, value);
+                break;
+        }
+    },
+
+    async translateGlossaryVietPhrase() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        const input = document.getElementById('glossary-meaning-input');
+        if (!middleSpan || !input) return;
+
+        const text = middleSpan.textContent || '';
+        if (!text.trim()) return;
+
+        // Use VietPhrase API
+        const translated = await this.translateTextVietPhrase(text);
+        input.value = translated;
+    },
+
+    async translateGlossaryMoldich() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        const input = document.getElementById('glossary-meaning-input');
+        if (!middleSpan || !input) return;
+
+        const text = middleSpan.textContent || '';
+        if (!text.trim()) return;
+
+        try {
+            const response = await fetch('https://cors.moldich.eu.org/?q=https://jpname.tomatomtl.com/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const data = await response.json();
+            input.value = this.capWords(30, data.translation || text);
+        } catch (error) {
+            console.error('Moldich translation error:', error);
+            input.value = text;
+        }
+    },
+
+    async translateGlossaryGemini(targetLang = 'vi') {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        const input = document.getElementById('glossary-meaning-input');
+        if (!middleSpan || !input) return;
+
+        const text = middleSpan.textContent || '';
+        if (!text.trim()) return;
+
+        try {
+            let prompt;
+            if (targetLang === 'vi') {
+                prompt = `Hãy dịch, giải thích từ tiếng Trung này, trả lời nhanh gọn dễ hiểu nhất. Output Vietnamese translation ONLY. NO explanations. NO notes.: ${text}`;
+            } else if (targetLang === 'jp') {
+                prompt = `Translate the following text into Romaji for Japanese names, ensuring accuracy and maintaining the original format, only return the result without any explanation: ${text}`;
+            } else {
+                prompt = `Translate the following text into Western-style names, ensuring accuracy and consistency with Western naming conventions, only return the result without any explanation: ${text}`;
+            }
+
+            const response = await fetch('http://cors.moldich.eu.org/?q=https://moldich.gq/gemini2.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+            const data = await response.json();
+            const result = (data.response || text).split('\n').filter(l => l.trim() !== '').join('\n');
+            input.value = result;
+        } catch (error) {
+            console.error('Gemini translation error:', error);
+            input.value = text;
+        }
+    },
+
+    async translateGlossaryGoogle(targetLang = 'vi') {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        const input = document.getElementById('glossary-meaning-input');
+        if (!middleSpan || !input) return;
+
+        const text = middleSpan.textContent || '';
+        if (!text.trim()) return;
+
+        try {
+            const bodyJSON = [[text, "zh-CN", targetLang], "te"];
+            const response = await fetch('https://translate-pa.googleapis.com/v1/translateHtml', {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json+protobuf',
+                    'x-client-data': 'CIH/ygE=',
+                    'x-goog-api-key': 'AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520'
+                },
+                body: JSON.stringify(bodyJSON)
+            });
+            const data = await response.json();
+            input.value = data[0] || text;
+        } catch (error) {
+            console.error('Google translation error:', error);
+            input.value = text;
+        }
+    },
+
+    async translateGlossaryDeepL() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        const input = document.getElementById('glossary-meaning-input');
+        if (!middleSpan || !input) return;
+
+        const text = middleSpan.textContent || '';
+        if (!text.trim()) return;
+
+        try {
+            const response = await fetch('https://api.deeplx.org/f4jXcPGCkdz1sPLQXzmvPSJgH5Ggxa0obPC7Mr8AvDM/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, source_lang: 'zh', target_lang: 'en' })
+            });
+            const data = await response.json();
+            input.value = data.data || text;
+        } catch (error) {
+            console.error('DeepL translation error:', error);
+            input.value = text;
+        }
+    },
+
+    openGoogleTranslate() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        if (middleSpan) {
+            const text = middleSpan.textContent || '';
+            window.open("https://translate.google.com/?sl=zh-CN&tl=vi&op=translate&text=" +
+                encodeURIComponent(text), "_blank");
+        }
+    },
+
+    openGoogle() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        if (middleSpan) {
+            const text = middleSpan.textContent || '';
+            window.open("https://www.google.com/search?q=" +
+                encodeURIComponent(text), "_blank");
+        }
+    },
+
+    openHanzii() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        if (middleSpan) {
+            const text = middleSpan.textContent || '';
+            window.open("https://hanzii.net/search/word/" +
+                encodeURIComponent(text) + "?hl=vi", "_blank");
+        }
+    },
+
+    openMdbg() {
+        const middleSpan = document.getElementById('glossary-raw-text');
+        if (middleSpan) {
+            const text = middleSpan.textContent || '';
+            window.open("https://www.mdbg.net/chinese/dictionary?page=worddict&wdrst=0&wdqb=" +
+                encodeURIComponent(text), "_blank");
+        }
     },
 
     closeGlossaryModal() {
@@ -853,30 +1280,6 @@ const ThreadReader = {
             try { return this._jiebaCutInstance(text, true) || []; } catch {}
         }
         return this._segmentWithIntl(text);
-    },
-    async populateGlossaryTokens(text) {
-        const wrap = document.getElementById('glossary-token-list');
-        if (!wrap) return;
-        wrap.innerHTML = '<span class="text-muted">Segmenting...</span>';
-        const tokens = await this.segmentLine(text);
-        if (!tokens || tokens.length === 0) {
-            wrap.innerHTML = '<span class="text-muted">No tokens</span>';
-            return;
-        }
-        const frag = document.createDocumentFragment();
-        tokens.forEach(tok => {
-            const span = document.createElement('span');
-            span.className = 'badge bg-light text-dark me-1 mb-1';
-            span.textContent = tok;
-            span.style.cursor = 'pointer';
-            span.addEventListener('click', () => {
-                const rawTarget = document.getElementById('glossary-raw-text');
-                if (rawTarget) rawTarget.textContent = tok;
-            });
-            frag.appendChild(span);
-        });
-        wrap.innerHTML = '';
-        wrap.appendChild(frag);
     },
 
     renderPagination() {

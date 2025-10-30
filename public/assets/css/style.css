@@ -464,6 +464,40 @@ footer {
     background-color: rgba(90, 157, 138, 0.08);
 }
 
+/* Word segmentation tooltip (zuro class from translate.php) */
+.zuro {
+    position: relative;
+    cursor: pointer;
+}
+
+.zuro::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: 'Hanzi-Pinyin-Font', sans-serif;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.zuro:hover::after {
+    opacity: 1;
+}
+
+/* Ensure tooltip in modal uses the pinyin font */
+.modal .zuro::after {
+    font-family: 'Hanzi-Pinyin-Font', sans-serif !important;
+}
+
 /* Responsive Improvements */
 @media (max-width: 576px) {
     :root {
