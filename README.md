@@ -82,17 +82,18 @@ nga-translate/
 │   │   │   ├── utils.js       # Shared utility functions
 │   │   │   ├── pwa.js         # PWA registration
 │   │   │   ├── auth.js        # NGA authentication
-│   │   │   ├── translate.js   # Translation integration
+│   │   │   ├── translate.js   # Translation integration (VietPhrase API)
 │   │   │   ├── main.js        # Global scripts
 │   │   │   ├── forum.js       # Forum page logic
-│   │   │   ├── read.js        # Thread reading logic
+│   │   │   ├── read.js        # Thread reading + glossary modal logic
 │   │   │   ├── search.js      # Search functionality
 │   │   │   ├── bookmarks-page.js
 │   │   │   ├── history-page.js
 │   │   │   ├── favorite-forums.js
 │   │   │   ├── forum-page.js
 │   │   │   ├── forum-list.js
-│   │   │   └── emoticons.js   # NGA emoticon support
+│   │   │   ├── emoticons.js   # NGA emoticon support
+│   │   │   └── PhienAm.js     # Sino-Vietnamese phonetic dictionary
 │   │   └── images/
 │   │       ├── icon.png       # Source icon (512x512)
 │   │       └── icons/         # Generated PWA icons
@@ -237,27 +238,58 @@ This project follows **SOLID, DRY, KISS, YAGNI** principles:
 - **YAGNI**: Only features that are actually used
 - **SOLID**: Single responsibility functions
 
-### Recent Optimizations
+### Recent Enhancements (2025-01)
 
-## Glossary + OCR
+**Glossary Modal Improvements:**
+- ✅ Redesigned horizontal layout with navigation arrows (migrated from temp/translate.php)
+- ✅ Added colored word segmentation with hover tooltips
+- ✅ Integrated 8 translation providers (Phiên Âm, Moldich, Gemini×3, Google×2, DeepL)
+- ✅ Implemented silent reload after glossary save (no loading spinner)
+- ✅ Switched from Bootstrap Icons to Font Awesome 6.5.1
 
-The app supports a complete glossary editing flow and in‑place OCR for images inside posts.
+**Code Quality Optimizations:**
 
-### Glossary Editing
+## Glossary + OCR + Translation Tools
 
-- Per‑line raw text: each rendered line has a matching `data-raw` built by splitting original API `content` at `<br/>` and stripping BBCode/HTML, emoticons, and standalone URLs.
-- Click‑to‑edit: click any line to open a modal to add/update a glossary entry for that raw text. Entries are saved to `localStorage` under `nga_glossary` as an array of `{ raw, mean }`.
-- Global page: visit `/glossary` to bulk edit (format: `Raw=Meaning` per line), import/export, or clear.
-- Translation requests: the client sends the glossary with each request; the translation server applies this glossary BEFORE built‑in dictionaries.
+The app supports a complete glossary editing workflow with multiple translation providers and in-place OCR for images inside posts.
+
+### Glossary Editing Modal
+
+**Features:**
+- **Per-line editing**: Each rendered line has a matching `data-raw` attribute (built by splitting original API `content` at `<br/>` and stripping BBCode/HTML, emoticons, and standalone URLs)
+- **Click-to-edit**: Click any line to open an interactive modal for adding/updating glossary entries
+- **Navigation arrows**: Expand/shrink selection boundaries with left/right arrow controls
+- **Word segmentation**: Jieba WASM-powered Chinese word segmentation with colored display (4 rotating colors: #7a57d1, #2f89fc, #aa530e, #278ea5)
+- **Hover tooltips**: Pinyin/phonetic tooltips on segmented words
+- **Live re-translation**: Saving a glossary entry automatically re-translates the entire thread without loading spinner
+
+**Translation Providers:**
+- **Phiên Âm** - Sino-Vietnamese phonetic transcription using PhienAm.js dictionary (2000+ character mappings)
+- **Moldich** - Japanese name romanization via JPname API
+- **Gemini** - Google Gemini 2.0 Flash with 3 variants (Vietnamese, Japanese Romaji, English)
+- **Google Translate** - Direct Google Translate API (Vietnamese, English)
+- **DeepL** - DeepL translation (English only)
+
+**Storage:**
+- Entries saved to `localStorage` under `nga_glossary` as an array of `{ raw, mean }`
+- Global page at `/glossary` for bulk editing (format: `Raw=Meaning` per line), import/export, and clearing
+- Translation server applies glossary BEFORE built-in dictionaries
 
 ### Image OCR in Comments
 
-- Click any image in a post to open the OCR modal. Images are proxied via `https://wsrv.nl/?url=` for consistent fetching.
-- OCR: Tesseract.js, Chinese (Simplified, `chi_sim`) with a progress bar.
-- After OCR, the app auto‑translates the text using the same VietPhrase API. You can re‑translate, copy text, copy translation, or fix line breaks.
-- Fix Line Breaks: merges short lines until punctuation for better readability.
+**Features:**
+- **Click-to-OCR**: Click any image in a post to open the OCR modal
+- **Image proxy**: All images proxied via `https://wsrv.nl/?url=` for consistent CORS-free fetching
+- **OCR engine**: Tesseract.js with Chinese Simplified (`chi_sim`) language support
+- **Progress tracking**: Real-time progress bar during OCR processing
+- **Auto-translation**: Automatic translation using VietPhrase API after OCR completion
+- **Text manipulation**: Copy text, copy translation, or fix line breaks
+- **Line break fixing**: Merges short lines until punctuation for better readability
 
-Details: see `docs/GLOSSARY_OCR.md`.
+**Technical Details:**
+- See `docs/GLOSSARY_OCR.md` for complete documentation
+- Font Awesome 6.5.1 icons throughout glossary modal UI
+- Horizontal layout with contextual text display (left context | selected | right context)
 
 ✅ Consolidated duplicate `escapeHtml()` functions (eliminated 35 lines)
 ✅ Created central `CONFIG` constants (no magic numbers)
