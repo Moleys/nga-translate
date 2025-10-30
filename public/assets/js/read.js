@@ -116,31 +116,10 @@ const ThreadReader = {
     // Extract raw text lines by splitting original content at <br> and then stripping BBCode/HTML per-line
     extractRawLines(bbcode) {
         const src = String(bbcode || '');
-
-        // CRITICAL: Extract [quote] blocks first and replace with placeholders
-        // This prevents quote content from being split into multiple lines
-        const quoteBlocks = [];
-        let processed = src.replace(/\[quote\]([\s\S]*?)\[\/quote\]/g, (match, quoteContent) => {
-            const index = quoteBlocks.length;
-            // Strip BBCode/HTML from entire quote content (keep as single line)
-            const cleanQuote = Utils.stripBBCodeAndHtml(quoteContent || '', { trim: true });
-            quoteBlocks.push(cleanQuote);
-            // IMPORTANT: Add <br/> after placeholder to ensure quote is on separate line
-            return `__QUOTE_BLOCK_${index}__<br/>`;
-        });
-
         // Split by <br/> boundaries from original API content
-        const parts = processed.split(/<br\s*\/?>(?![^<]*>)/i);
-
-        // Clean each part and restore quote blocks
-        return parts.map(p => {
-            let cleaned = Utils.stripBBCodeAndHtml(p || '', { trim: true });
-            // Restore quote block placeholders with their cleaned content
-            cleaned = cleaned.replace(/__QUOTE_BLOCK_(\d+)__/g, (match, index) => {
-                return quoteBlocks[parseInt(index)] || '';
-            });
-            return cleaned;
-        });
+        const parts = src.split(/<br\s*\/?>(?![^<]*>)/i);
+        // Clean each part separately so line alignment matches display segments
+        return parts.map(p => Utils.stripBBCodeAndHtml(p || '', { trim: true }));
     },
     // Align raw text to match number of display segments using punctuation-aware heuristics
     alignRawToSegments(segCount, rawLines) {
@@ -214,9 +193,7 @@ const ThreadReader = {
     // Wrap parsed HTML content into per-line blocks (.comment-line) with per-line data-raw
     wrapParsedContentWithLines(parsedHtml, rawLines) {
         if (!parsedHtml) return '';
-        let segments = parsedHtml.split(/<br\s*\/?>(?![^<]*>)/i); // split on <br> not inside tags
-        // Filter out empty/whitespace-only segments to prevent misaligned data-raw attributes
-        segments = segments.filter(seg => seg.trim() !== '');
+        const segments = parsedHtml.split(/<br\s*\/?>(?![^<]*>)/i); // split on <br> not inside tags
         const alignedRaw = this.alignRawToSegments(segments.length, rawLines);
         const blocks = segments.map((seg, idx) => {
             const raw = (alignedRaw && alignedRaw[idx] !== undefined) ? alignedRaw[idx] : '';
@@ -1423,11 +1400,6 @@ const ThreadReader = {
 
         let parsed = content;
 
-        // DEBUG: Log raw content if it contains quote or reply patterns
-        if (/\[quote\]|\[b\].*?Reply/i.test(content)) {
-            console.log('[DEBUG] Raw BBCode content:', content.substring(0, 500));
-        }
-
         // Add CORS proxy to video URLs (src and poster attributes)
         const videoProxyUrl = 'https://cors.moldich.eu.org/?q=';
 
@@ -1472,20 +1444,15 @@ const ThreadReader = {
             return match;
         });
 
-        // Parse BOTH [b]Reply to... and <b>Reply to... patterns (NGA API returns mixed format)
-        // BBCode pattern: [b]Reply to [pid]...[/pid] Post by [uid]...[/uid] (date)[/b]
-        const replyToPatternBBCode = /\[b\]Reply\s+to\s+\[pid=([^\]]+)\]([\s\S]*?)\[\/pid\]\s+Post\s+by\s+\[uid=(\d+)\]([\s\S]*?)\[\/uid\]\s*\(([^)]+)\):?\s*\[\/b\]/g;
-        // HTML pattern: <b>Post by [uid]...[/uid] (date):</b> (inside quotes from API)
-        const replyToPatternHTML = /<b>Post\s+by\s+\[uid=(\d+)\]([\s\S]*?)\[\/uid\]\s*\(([^)]+)\):?\s*<\/b>/g;
-
-        if (/\[b\]Reply\s+to\s+\[pid=/.test(parsed)) {
-            console.log('[DEBUG] Found Reply-to BBCode pattern in content');
+        // Parse [b]Reply to [pid]...[/pid] Post by [uid]...[/uid] (date)[/b] pattern
+        // Use [\s\S]*? to match any character including newlines
+        const replyToPattern = /\[b\]Reply to \[pid=([^\]]+)\]([\s\S]*?)\[\/pid\] Post by \[uid=(\d+)\]([\s\S]*?)\[\/uid\]\s*\(([^)]+)\)\[\/b\]/g;
+        if (/\[b\]Reply to \[pid=/.test(parsed)) {
+            console.log('[DEBUG] Found Reply-to pattern in content');
         }
-
-        // Parse BBCode pattern first
-        parsed = parsed.replace(replyToPatternBBCode,
+        parsed = parsed.replace(replyToPattern,
             (match, pidData, pidText, uid, username, date) => {
-                console.log('[DEBUG] Replacing Reply-to BBCode:', {pidData, username, date, match});
+                console.log('[DEBUG] Replacing Reply-to:', {pidData, username, date});
                 const parts = pidData.split(',');
                 const pid = parts[0];
                 const tid = parts[1] || '';
@@ -1494,21 +1461,10 @@ const ThreadReader = {
                 const safeUsername = Utils.escapeHtml(username);
                 const safeDate = Utils.escapeHtml(date);
 
-                // CRITICAL: Add <br/> after reply-to-header to ensure it's on separate line
                 if (tid) {
-                    return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div><br/>`;
+                    return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
                 }
-                return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div><br/>`;
-            }
-        );
-
-        // Parse HTML pattern (inside quotes from API)
-        parsed = parsed.replace(replyToPatternHTML,
-            (match, uid, username, date) => {
-                console.log('[DEBUG] Replacing Reply-to HTML:', {uid, username, date, match});
-                const safeUsername = Utils.escapeHtml(username);
-                const safeDate = Utils.escapeHtml(date);
-                return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Post by <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
+                return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
             }
         );
 
@@ -1570,18 +1526,8 @@ const ThreadReader = {
             // Parse [b] tags inside quote
             quoteParsed = quoteParsed.replace(/\[b\]([\s\S]*?)\[\/b\]/g, '<strong>$1</strong>');
 
-            // CRITICAL FIX: Replace <br/> tags inside quote with space to prevent split on wrapParsedContentWithLines()
-            // This keeps quote as atomic block (single comment-line)
-            quoteParsed = quoteParsed.replace(/<br\s*\/?>/gi, ' ');
-
-            // IMPORTANT: Add <br/> after blockquote to ensure it's on separate line from following content
-            return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 bg-light">${quoteParsed}</blockquote><br/>`;
+            return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 bg-light">${quoteParsed}</blockquote>`;
         });
-
-        // CRITICAL FIX: Normalize consecutive <br/> tags after parsing quotes
-        // Replace 3+ consecutive <br/> with double <br/> to maintain intentional paragraph breaks
-        // But collapse excessive breaks (e.g., <br/><br/><br/> -> <br/><br/>)
-        parsed = parsed.replace(/(<br\s*\/?>\s*){3,}/gi, '<br/><br/>');
 
         // Parse text formatting BBCode
         // Bold: [b]...[/b]
@@ -1855,4 +1801,3 @@ document.addEventListener('DOMContentLoaded', () => {
         ThreadReader.init();
     }
 });
-
