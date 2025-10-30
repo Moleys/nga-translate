@@ -116,10 +116,31 @@ const ThreadReader = {
     // Extract raw text lines by splitting original content at <br> and then stripping BBCode/HTML per-line
     extractRawLines(bbcode) {
         const src = String(bbcode || '');
+
+        // CRITICAL: Extract [quote] blocks first and replace with placeholders
+        // This prevents quote content from being split into multiple lines
+        const quoteBlocks = [];
+        let processed = src.replace(/\[quote\]([\s\S]*?)\[\/quote\]/g, (match, quoteContent) => {
+            const index = quoteBlocks.length;
+            // Strip BBCode/HTML from entire quote content (keep as single line)
+            const cleanQuote = Utils.stripBBCodeAndHtml(quoteContent || '', { trim: true });
+            quoteBlocks.push(cleanQuote);
+            // IMPORTANT: Add <br/> after placeholder to ensure quote is on separate line
+            return `__QUOTE_BLOCK_${index}__<br/>`;
+        });
+
         // Split by <br/> boundaries from original API content
-        const parts = src.split(/<br\s*\/?>(?![^<]*>)/i);
-        // Clean each part separately so line alignment matches display segments
-        return parts.map(p => Utils.stripBBCodeAndHtml(p || '', { trim: true }));
+        const parts = processed.split(/<br\s*\/?>(?![^<]*>)/i);
+
+        // Clean each part and restore quote blocks
+        return parts.map(p => {
+            let cleaned = Utils.stripBBCodeAndHtml(p || '', { trim: true });
+            // Restore quote block placeholders with their cleaned content
+            cleaned = cleaned.replace(/__QUOTE_BLOCK_(\d+)__/g, (match, index) => {
+                return quoteBlocks[parseInt(index)] || '';
+            });
+            return cleaned;
+        });
     },
     // Align raw text to match number of display segments using punctuation-aware heuristics
     alignRawToSegments(segCount, rawLines) {
@@ -1553,8 +1574,14 @@ const ThreadReader = {
             // This keeps quote as atomic block (single comment-line)
             quoteParsed = quoteParsed.replace(/<br\s*\/?>/gi, ' ');
 
-            return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 bg-light">${quoteParsed}</blockquote>`;
+            // IMPORTANT: Add <br/> after blockquote to ensure it's on separate line from following content
+            return `<blockquote class="border-start border-3 border-secondary ps-3 py-2 my-2 bg-light">${quoteParsed}</blockquote><br/>`;
         });
+
+        // CRITICAL FIX: Normalize consecutive <br/> tags after parsing quotes
+        // Replace 3+ consecutive <br/> with double <br/> to maintain intentional paragraph breaks
+        // But collapse excessive breaks (e.g., <br/><br/><br/> -> <br/><br/>)
+        parsed = parsed.replace(/(<br\s*\/?>\s*){3,}/gi, '<br/><br/>');
 
         // Parse text formatting BBCode
         // Bold: [b]...[/b]
