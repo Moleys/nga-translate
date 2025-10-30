@@ -85,11 +85,13 @@ const ThreadReader = {
         this.loadPosts();
     },
 
-    async loadPosts() {
+    async loadPosts(silent = false) {
         if (this.loading) return;
 
         this.loading = true;
-        this.showLoading();
+        if (!silent) {
+            this.showLoading();
+        }
 
         try {
             const url = `/api/thread/${this.currentTid}/posts?page=${this.currentPage}`;
@@ -571,7 +573,7 @@ const ThreadReader = {
 
     setupGlobalModalHandlers() {
         // Save button handler for glossary modal
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', async (e) => {
             if (e.target.id === 'glossary-save-btn') {
                 const middleSpan = document.getElementById('glossary-raw-text');
                 const raw = middleSpan?.textContent?.trim() || '';
@@ -579,6 +581,9 @@ const ThreadReader = {
                 if (!raw) return this.closeGlossaryModal();
                 this.saveToGlossary(raw, meaning);
                 this.closeGlossaryModal();
+
+                // Reload and re-translate the current thread silently (no loading spinner)
+                await this.loadPosts(true);
             }
         });
 
@@ -911,7 +916,7 @@ const ThreadReader = {
         }
     },
 
-    async translateGlossaryVietPhrase() {
+    translateGlossaryPhienAm() {
         const middleSpan = document.getElementById('glossary-raw-text');
         const input = document.getElementById('glossary-meaning-input');
         if (!middleSpan || !input) return;
@@ -919,9 +924,28 @@ const ThreadReader = {
         const text = middleSpan.textContent || '';
         if (!text.trim()) return;
 
-        // Use VietPhrase API
-        const translated = await this.translateTextVietPhrase(text);
-        input.value = translated;
+        // Check if PhienAm dictionary is available
+        if (typeof PhienAm === 'undefined' || !Array.isArray(PhienAm)) {
+            console.error('PhienAm dictionary not loaded');
+            input.value = text;
+            return;
+        }
+
+        // Convert each Chinese character to Hán Việt phonetic reading
+        const characters = Array.from(text);
+        const phonetics = characters.map(char => {
+            // Skip whitespace and punctuation
+            if (char.trim() === '' || /[\p{P}\p{S}]/u.test(char)) {
+                return char;
+            }
+
+            // Look up character in PhienAm dictionary
+            const entry = PhienAm.find(item => item.zh === char);
+            return entry ? entry.vi : char;
+        });
+
+        // Join with spaces
+        input.value = phonetics.join(' ').replace(/\s+/g, ' ').trim();
     },
 
     async translateGlossaryMoldich() {
