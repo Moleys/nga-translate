@@ -163,18 +163,18 @@ const FavoritesPage = {
                                             data-index="${index}"
                                             ${isFirst ? 'disabled' : ''}
                                             title="Move up">
-                                        <i class="bi bi-arrow-up"></i>
+                                        <i class="fa-solid fa-arrow-up"></i>
                                     </button>
                                     <button class="btn btn-outline-secondary move-down-btn"
                                             data-index="${index}"
                                             ${isLast ? 'disabled' : ''}
                                             title="Move down">
-                                        <i class="bi bi-arrow-down"></i>
+                                        <i class="fa-solid fa-arrow-down"></i>
                                     </button>
                                     <button class="btn btn-outline-danger delete-favorite-btn"
                                             data-index="${index}"
                                             title="Remove favorite">
-                                        <i class="bi bi-trash"></i>
+                                        <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </div>
                             </div>
@@ -288,7 +288,7 @@ const FavoritesPage = {
         const data = dataToRender || this.history;
 
         if (data.length === 0) {
-            container.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-clock-history"></i> No thread history yet</div>';
+            container.innerHTML = '<div class="text-center text-muted py-4"><i class="fa-solid fa-clock-rotate-left"></i> No thread history yet</div>';
             return;
         }
 
@@ -306,8 +306,8 @@ const FavoritesPage = {
                         <div class="flex-grow-1">
                             <h6 class="mb-1" ${titleStyle}>${Utils.escapeHtml(thread.subject)}</h6>
                             <small class="text-muted">
-                                <i class="bi bi-person"></i> ${Utils.escapeHtml(thread.author)}
-                                ${thread.forumName ? `<span class="mx-1">•</span><i class="bi bi-folder"></i> ${Utils.escapeHtml(thread.forumName)}` : ''}
+                                <i class="fa-solid fa-user"></i> ${Utils.escapeHtml(thread.author)}
+                                ${thread.forumName ? `<span class="mx-1">•</span><i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(thread.forumName)}` : ''}
                             </small>
                         </div>
                         <small class="text-muted ms-2">${timeAgo}</small>

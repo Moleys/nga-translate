@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 // Trie structures
@@ -205,9 +205,9 @@ func main() {
 	
 	// CORS middleware
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
-		AllowHeaders:     []string{"*"},
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,PUT,DELETE",
+		AllowHeaders: "*",
 	}))
 	
 	// Routes
@@ -608,11 +608,11 @@ func translateText(text string, glossaryTrie *Trie) (string, string) {
     return text, "und"
 }
 
-func handleTranslate(c fiber.Ctx) error {
+func handleTranslate(c *fiber.Ctx) error {
 	c.Set("Content-Type", "application/json")
 
 	var req TranslateRequest
-    if err := c.Bind().JSON(&req); err != nil {
+    if err := c.BodyParser(&req); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
     }
 
@@ -630,11 +630,11 @@ func handleTranslate(c fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-func handleTranslate2(c fiber.Ctx) error {
+func handleTranslate2(c *fiber.Ctx) error {
 	c.Set("Content-Type", "application/json")
 
     var items []TranslateItem
-    if err := c.Bind().JSON(&items); err != nil {
+    if err := c.BodyParser(&items); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
     }
 
@@ -673,7 +673,7 @@ func handleTranslate2(c fiber.Ctx) error {
 	return c.JSON(results)
 }
 
-func handleTranslate3(c fiber.Ctx) error {
+func handleTranslate3(c *fiber.Ctx) error {
 	c.Set("Content-Type", "application/json")
 
 	text := c.Query("q")
@@ -710,7 +710,7 @@ func handleTranslate3(c fiber.Ctx) error {
 	return c.JSON(nestedResult)
 }
 
-func handleTranslate4(c fiber.Ctx) error {
+func handleTranslate4(c *fiber.Ctx) error {
 	c.Set("Content-Type", "application/json")
 
 	authToken := c.Get("Authorization")
@@ -719,7 +719,7 @@ func handleTranslate4(c fiber.Ctx) error {
 	}
 
 	var req Translate4Request
-    if err := c.Bind().JSON(&req); err != nil {
+    if err := c.BodyParser(&req); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON"})
     }
 

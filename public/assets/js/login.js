@@ -114,7 +114,7 @@ const LoginPage = {
             const savedDate = auth.saved_at ? new Date(auth.saved_at).toLocaleString() : 'Unknown';
             statusDiv.className = 'alert alert-success';
             statusDiv.innerHTML = `
-                <i class="bi bi-check-circle-fill"></i> <strong>Logged in</strong>
+                <i class="fa-solid fa-circle-check"></i> <strong>Logged in</strong>
                 <div class="small mt-1">
                     User ID: <code>${Utils.escapeHtml(auth.access_uid)}</code><br>
                     Token: <code>${this.maskToken(auth.access_token)}</code><br>
@@ -123,7 +123,7 @@ const LoginPage = {
             `;
         } else {
             statusDiv.className = 'alert alert-warning';
-            statusDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> <strong>Not logged in</strong> - Enter your credentials below';
+            statusDiv.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> <strong>Not logged in</strong> - Enter your credentials below';
         }
     },
 

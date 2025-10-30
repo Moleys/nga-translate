@@ -42,7 +42,7 @@ function showUpdateNotification() {
     notification.innerHTML = `
         <div class="d-flex align-items-center justify-content-between">
             <div>
-                <i class="bi bi-arrow-clockwise"></i>
+                <i class="fa-solid fa-arrow-rotate-right"></i>
                 <strong>Update Available</strong>
                 <p class="mb-0 small">A new version is available. Refresh to update.</p>
             </div>
@@ -78,7 +78,7 @@ function showInstallPrompt() {
     const installButton = document.createElement('button');
     installButton.className = 'btn btn-primary position-fixed bottom-0 end-0 m-3';
     installButton.style.zIndex = '10000';
-    installButton.innerHTML = '<i class="bi bi-download"></i> Install App';
+    installButton.innerHTML = '<i class="fa-solid fa-download"></i> Install App';
     installButton.id = 'pwa-install-btn';
 
     installButton.addEventListener('click', async () => {
@@ -133,7 +133,7 @@ window.addEventListener('appinstalled', () => {
     const toast = document.createElement('div');
     toast.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
     toast.style.zIndex = '10000';
-    toast.innerHTML = '<i class="bi bi-check-circle"></i> App installed successfully!';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> App installed successfully!';
 
     document.body.appendChild(toast);
 
@@ -173,8 +173,8 @@ function showConnectionStatus(status) {
     toast.style.zIndex = '10000';
 
     toast.innerHTML = status === 'online'
-        ? '<i class="bi bi-wifi"></i> Back online'
-        : '<i class="bi bi-wifi-off"></i> You are offline';
+        ? '<i class="fa-solid fa-wifi"></i> Back online'
+        : '<i class="fa-solid fa-wifi-slash"></i> You are offline';
 
     document.body.appendChild(toast);
 

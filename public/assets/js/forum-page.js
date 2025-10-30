@@ -170,7 +170,7 @@ const ForumPage = {
             html += `
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0"><i class="bi bi-folder2-open"></i> ${Utils.escapeHtml(category.category)}</h4>
+                        <h4 class="mb-0"><i class="fa-solid fa-folder-open"></i> ${Utils.escapeHtml(category.category)}</h4>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -178,7 +178,7 @@ const ForumPage = {
 
             category.forums.forEach(forum => {
                 const isFavorited = this.isFavorited(forum.fid);
-                const favoriteClass = isFavorited ? 'bi-star-fill text-warning' : 'bi-star';
+                const favoriteClass = isFavorited ? 'fa-solid fa-star text-warning' : 'fa-regular fa-star';
 
                 html += `
                     <div class="col-md-6 col-lg-4">
@@ -198,7 +198,7 @@ const ForumPage = {
                                     data-subject="${Utils.escapeHtml(forum.subject)}"
                                     data-avatar="${forum.avatar}"
                                     title="${isFavorited ? 'Remove favorite' : 'Add favorite'}">
-                                <i class="bi ${favoriteClass} fs-5"></i>
+                                <i class="${favoriteClass} fs-5"></i>
                             </button>
                         </div>
                     </div>

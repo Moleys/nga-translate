@@ -9,7 +9,7 @@ const CONFIG = {
     THREADS_PER_PAGE: 50,
 
     // Translation API
-    TRANSLATION_API_URL: 'http://localhost:5005/translate2',
+    TRANSLATION_API_URL: 'https://vietphrase.nhimmeo.cf/translate2',
     TRANSLATION_API_VERSION: '3.0',
     TRANSLATION_SOURCE_LANG: 'zh-Hans',
     TRANSLATION_TARGET_LANG: 'vi',

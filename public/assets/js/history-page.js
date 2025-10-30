@@ -144,11 +144,11 @@ const HistoryPage = {
                                 <span class="badge bg-secondary ms-2">#${index + 1}</span>
                             </div>
                             <p class="mb-1 text-muted">
-                                <i class="bi bi-person-fill"></i> ${Utils.escapeHtml(thread.author)}
-                                ${thread.forumName ? `<span class="mx-2">•</span><i class="bi bi-folder-fill"></i> ${Utils.escapeHtml(thread.forumName)}` : ''}
+                                <i class="fa-solid fa-user"></i> ${Utils.escapeHtml(thread.author)}
+                                ${thread.forumName ? `<span class="mx-2">•</span><i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(thread.forumName)}` : ''}
                             </p>
                             <small class="text-muted">
-                                <i class="bi bi-clock"></i> ${timeAgo}
+                                <i class="fa-solid fa-clock"></i> ${timeAgo}
                                 <span class="mx-2">•</span>
                                 <span title="${fullDate}">${fullDate}</span>
                             </small>

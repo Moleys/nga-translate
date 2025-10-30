@@ -252,7 +252,7 @@ const TranslationUtil = {
             // Format texts for VietPhrase API (add glossary along each item)
             const requestBody = texts.map(text => ({ text: text, glossary }));
 
-            const response = await fetch('http://localhost:5005/translate2?api-version=3.0&to=vi&from=zh-Hans', {
+            const response = await fetch('https://vietphrase.nhimmeo.cf/translate2?api-version=3.0&to=vi&from=zh-Hans', {
                 method: 'POST',
                 headers: {
                     'User-Agent': 'okhttp/4.9.1',

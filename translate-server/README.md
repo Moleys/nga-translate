@@ -39,7 +39,7 @@ go run main.go
 ```bash
 curl -X POST -H "Content-Type: application/json" \
   -d '{"text":"你好世界"}' \
-  http://localhost:5005/translate
+  https://vietphrase.nhimmeo.cf/translate
 ```
 Response: `{"translatedText":"ngươi tốt thế giới"}`
 
@@ -47,12 +47,12 @@ Response: `{"translatedText":"ngươi tốt thế giới"}`
 ```bash
 curl -X POST -H "Content-Type: application/json" \
   -d '[{"text":"你好世界"}]' \
-  http://localhost:5005/translate2
+  https://vietphrase.nhimmeo.cf/translate2
 ```
 
 ### GET /translate3
 ```bash
-curl "http://localhost:5005/translate3?q=你好世界"
+curl "https://vietphrase.nhimmeo.cf/translate3?q=你好世界"
 ```
 
 ## Performance

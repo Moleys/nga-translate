@@ -1,5 +1,8 @@
 # Use official golang image as build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:alpine AS builder
+
+# Install git and ca-certificates (required for go mod download)
+RUN apk --no-cache add git ca-certificates
 
 # Set working directory
 WORKDIR /app
@@ -31,7 +34,7 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/data ./data
 
 # Expose port
-EXPOSE 5008
+EXPOSE 5005
 
 # Run the binary
 CMD ["./main"]

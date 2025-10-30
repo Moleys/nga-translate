@@ -298,28 +298,28 @@ const ForumApp = {
                             <div class="${hasAttachment ? 'col' : 'col-12'}">
                                 <h5 class="card-title mb-3">
                                     <a href="/thread/${tid}" class="${titleClass}" ${titleStyle}>
-                                        ${hasAttachment ? '<i class="bi bi-image text-muted me-2"></i>' : ''}${Utils.escapeHtml(title)}
+                                        ${hasAttachment ? '<i class="fa-solid fa-image text-muted me-2"></i>' : ''}${Utils.escapeHtml(title)}
                                     </a>
                                 </h5>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <small class="text-muted">
-                                            <i class="bi bi-person-circle"></i> <strong>Author:</strong> ${Utils.escapeHtml(author)}<br>
-                                            ${postDate ? `<i class="bi bi-calendar3"></i> <strong>Posted:</strong> ${postDate}` : ''}
+                                            <i class="fa-solid fa-user-circle"></i> <strong>Author:</strong> ${Utils.escapeHtml(author)}<br>
+                                            ${postDate ? `<i class="fa-solid fa-calendar-days"></i> <strong>Posted:</strong> ${postDate}` : ''}
                                         </small>
                                     </div>
                                     <div class="col-md-6 text-md-end">
                                         <small class="text-muted">
-                                            ${lastPostDate ? `<i class="bi bi-clock-history"></i> <strong>Last:</strong> ${lastPostDate}<br>` : ''}
-                                            <i class="bi bi-person"></i> ${Utils.escapeHtml(lastPoster)}
+                                            ${lastPostDate ? `<i class="fa-solid fa-clock-rotate-left"></i> <strong>Last:</strong> ${lastPostDate}<br>` : ''}
+                                            <i class="fa-solid fa-user"></i> ${Utils.escapeHtml(lastPoster)}
                                         </small>
                                     </div>
                                 </div>
                                 <div class="mt-2">
                                     <span class="badge bg-primary rounded-pill">
-                                        <i class="bi bi-chat-left-text"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
+                                        <i class="fa-solid fa-comment-dots"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
                                     </span>
-                                    ${hasAttachment ? `<span class="badge bg-secondary rounded-pill ms-1"><i class="bi bi-paperclip"></i> ${thread.attachs.length}</span>` : ''}
+                                    ${hasAttachment ? `<span class="badge bg-secondary rounded-pill ms-1"><i class="fa-solid fa-paperclip"></i> ${thread.attachs.length}</span>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -381,7 +381,7 @@ const ForumApp = {
 
             return `
                 <a href="/forum/${fid}" class="btn btn-outline-primary btn-sm" title="${Utils.escapeHtml(description)}">
-                    <i class="bi bi-folder"></i> ${Utils.escapeHtml(name)}
+                    <i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(name)}
                 </a>
             `;
         }).filter(item => item).join(''); // Remove empty strings

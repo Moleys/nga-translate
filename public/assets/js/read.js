@@ -452,15 +452,15 @@ const ThreadReader = {
                                 ${isOriginalPost ? '<span class="badge bg-primary ms-2">OP</span>' : ''}
                                 <br>
                                 <small class="text-muted">
-                                    <i class="bi bi-clock"></i> ${postDate}
+                                    <i class="fa-solid fa-clock"></i> ${postDate}
                                 </small>
                             </div>
                             <div class="d-flex flex-column align-items-end gap-2">
                                 <span class="post-floor">#${floor}</span>
                                 ${voteGood > 0 || voteBad > 0 ? `
                                     <div class="vote-info">
-                                        ${voteGood > 0 ? `<span class="badge bg-success"><i class="bi bi-hand-thumbs-up-fill"></i> ${voteGood}</span>` : ''}
-                                        ${voteBad > 0 ? `<span class="badge bg-secondary ms-1"><i class="bi bi-hand-thumbs-down-fill"></i> ${voteBad}</span>` : ''}
+                                        ${voteGood > 0 ? `<span class="badge bg-success"><i class="fa-solid fa-thumbs-up"></i> ${voteGood}</span>` : ''}
+                                        ${voteBad > 0 ? `<span class="badge bg-secondary ms-1"><i class="fa-solid fa-thumbs-down"></i> ${voteBad}</span>` : ''}
                                     </div>
                                 ` : ''}
                             </div>
@@ -488,7 +488,7 @@ const ThreadReader = {
         let hotPostsHtml = `
             <div class="hot-posts-section mb-4">
                 <div class="hot-posts-header">
-                    <i class="bi bi-fire"></i> Hot Comments
+                    <i class="fa-solid fa-fire"></i> Hot Comments
                 </div>
         `;
 
@@ -513,12 +513,12 @@ const ThreadReader = {
                                 <span class="badge bg-light text-dark ms-1">#${floor}</span>
                                 <br>
                                 <small class="text-muted">
-                                    <i class="bi bi-clock"></i> ${postDate}
+                                    <i class="fa-solid fa-clock"></i> ${postDate}
                                 </small>
                             </div>
                             <div class="vote-info text-end">
-                                ${voteGood > 0 ? `<span class="badge bg-success"><i class="bi bi-hand-thumbs-up-fill"></i> ${voteGood}</span>` : ''}
-                                ${voteBad > 0 ? `<span class="badge bg-secondary ms-1"><i class="bi bi-hand-thumbs-down-fill"></i> ${voteBad}</span>` : ''}
+                                ${voteGood > 0 ? `<span class="badge bg-success"><i class="fa-solid fa-thumbs-up"></i> ${voteGood}</span>` : ''}
+                                ${voteBad > 0 ? `<span class="badge bg-secondary ms-1"><i class="fa-solid fa-thumbs-down"></i> ${voteBad}</span>` : ''}
                             </div>
                         </div>
                         <div class="post-content small">
@@ -550,9 +550,9 @@ const ThreadReader = {
         document.title = `${subject} - NGA Forums`;
 
         document.getElementById('thread-info').innerHTML = `
-            <i class="bi bi-person-circle"></i> <strong>${Utils.escapeHtml(author)}</strong>
-            ${postDate ? ` • <i class="bi bi-calendar3"></i> ${postDate}` : ''}
-            • <i class="bi bi-chat-left-text"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
+            <i class="fa-solid fa-user-circle"></i> <strong>${Utils.escapeHtml(author)}</strong>
+            ${postDate ? ` • <i class="fa-solid fa-calendar-days"></i> ${postDate}` : ''}
+            • <i class="fa-solid fa-comment-dots"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
         `;
     },
 
@@ -564,7 +564,7 @@ const ThreadReader = {
         if (!breadcrumb) return;
 
         const breadcrumbHtml = `
-            <li class="breadcrumb-item"><a href="/"><i class="bi bi-house-door"></i> Home</a></li>
+            <li class="breadcrumb-item"><a href="/"><i class="fa-solid fa-house"></i> Home</a></li>
             ${fid ? `<li class="breadcrumb-item active" aria-current="page"><a href="/forum/${fid}">${Utils.escapeHtml(forumName)}</a></li>` : ''}
         `;
 
@@ -1462,9 +1462,9 @@ const ThreadReader = {
                 const safeDate = Utils.escapeHtml(date);
 
                 if (tid) {
-                    return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                    return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
                 }
-                return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
+                return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
             }
         );
 
@@ -1483,7 +1483,7 @@ const ThreadReader = {
             if (/\[pid=.*?\[b\]Post by/.test(quoteParsed)) {
                 console.log('[DEBUG] Found Reply pattern in quote block');
             }
-            quoteParsed = quoteParsed.replace(/\[pid=([^\]]+)\](.*?)\[\/pid\]\s+\[b\]Post by \[uid=(\d+)\](.*?)\[\/uid\]\s*\(([^)]+)\):\[\/b\]/g,
+            quoteParsed = quoteParsed.replace(/\/pid=([^\]]+)\](.*?)\[\/pid\]\s+\[b\]Post by \[uid=(\d+)\](.*?)\[\/uid\]\s*\(([^)]+)\):\[\/b\]/g,
                 (m, pidData, pidText, uid, username, date) => {
                     console.log('[DEBUG] Replacing Reply in quote:', {pidData, username, date});
                     const parts = pidData.split(',');
@@ -1495,9 +1495,9 @@ const ThreadReader = {
                     const safeDate = Utils.escapeHtml(date);
 
                     if (tid) {
-                        return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
+                        return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <a href="/thread/${Utils.escapeHtml(tid)}?page=${page}#post-${Utils.escapeHtml(pid)}" class="quote-reply-link" title="Jump to floor #${floor}"><span class="quote-author">${safeUsername}</span></a> <span class="text-muted">(${safeDate})</span></div>`;
                     }
-                    return `<div class="reply-to-header"><i class="bi bi-reply-fill"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
+                    return `<div class="reply-to-header"><i class="fa-solid fa-reply"></i> Reply to <span class="quote-author">${safeUsername}</span> <span class="text-muted">(${safeDate})</span></div>`;
                 }
             );
 
@@ -1622,7 +1622,7 @@ const ThreadReader = {
             }
             // Fallback: show link
             const safeUrl = Utils.escapeHtml(cleanUrl);
-            return `<a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-primary my-2"><i class="bi bi-play-circle"></i> View Video</a>`;
+            return `<a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-primary my-2"><i class="fa-solid fa-circle-play"></i> View Video</a>`;
         });
 
         // Convert standalone URLs to links (but not URLs in HTML attributes)
@@ -1723,12 +1723,12 @@ const ThreadReader = {
         const isBookmarked = this.isThreadBookmarked();
 
         if (isBookmarked) {
-            icon.className = 'bi bi-bookmark-fill';
+            icon.className = 'fa-solid fa-bookmark';
             text.textContent = 'Bookmarked';
             btn.classList.remove('btn-outline-warning');
             btn.classList.add('btn-warning');
         } else {
-            icon.className = 'bi bi-bookmark';
+            icon.className = 'fa-regular fa-bookmark';
             text.textContent = 'Bookmark';
             btn.classList.remove('btn-warning');
             btn.classList.add('btn-outline-warning');

@@ -175,7 +175,7 @@ Edit `public/assets/js/config.js`:
 
 ```javascript
 const CONFIG = {
-    TRANSLATION_API_URL: 'http://localhost:5005/translate2',
+    TRANSLATION_API_URL: 'https://vietphrase.nhimmeo.cf/translate2',
     TRANSLATION_SOURCE_LANG: 'zh-Hans',
     TRANSLATION_TARGET_LANG: 'vi',
     // ...

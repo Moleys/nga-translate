@@ -248,16 +248,16 @@ const SearchApp = {
                             <div class="${hasAttachment ? 'col' : 'col-12'}">
                                 <h5 class="card-title mb-2">
                                     <a href="/thread/${tid}" class="${titleClass}" ${titleStyle}>
-                                        ${hasAttachment ? '<i class="bi bi-image text-muted me-2"></i>' : ''}${Utils.escapeHtml(title)}
+                                        ${hasAttachment ? '<i class="fa-solid fa-image text-muted me-2"></i>' : ''}${Utils.escapeHtml(title)}
                                     </a>
                                 </h5>
                                 <p class="text-muted small mb-2">
-                                    <i class="bi bi-person-circle"></i> ${Utils.escapeHtml(author)}
-                                    ${postDate ? ` • <i class="bi bi-calendar3"></i> ${postDate}` : ''}
+                                    <i class="fa-solid fa-user-circle"></i> ${Utils.escapeHtml(author)}
+                                    ${postDate ? ` • <i class="fa-solid fa-calendar-days"></i> ${postDate}` : ''}
                                     ${fid ? ` • <a href="/forum/${fid}" class="text-decoration-none">View Forum</a>` : ''}
                                 </p>
                                 <span class="badge bg-primary rounded-pill">
-                                    <i class="bi bi-chat-left-text"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
+                                    <i class="fa-solid fa-comment-dots"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
                                 </span>
                             </div>
                         </div>
@@ -319,7 +319,7 @@ const SearchApp = {
                     <div class="card-body">
                         <h5 class="card-title mb-2">
                             <a href="/forum/${fid}" class="text-decoration-none text-dark">
-                                <i class="bi bi-folder"></i> ${Utils.escapeHtml(name)}
+                                <i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(name)}
                             </a>
                         </h5>
                         ${description ? `<p class="text-muted small mb-0">${Utils.escapeHtml(description)}</p>` : ''}
