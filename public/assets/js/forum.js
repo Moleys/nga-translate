@@ -316,7 +316,7 @@ const ForumApp = {
                                     </div>
                                 </div>
                                 <div class="mt-2">
-                                    <span class="badge bg-primary rounded-pill">
+                                    <span class="badge bg-success rounded-pill">
                                         <i class="fa-solid fa-comment-dots"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
                                     </span>
                                     ${hasAttachment ? `<span class="badge bg-secondary rounded-pill ms-1"><i class="fa-solid fa-paperclip"></i> ${thread.attachs.length}</span>` : ''}
@@ -339,7 +339,7 @@ const ForumApp = {
         const container = document.getElementById('threads-list');
         container.innerHTML = `
             <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
+                <div class="spinner-border text-success" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
                 <p class="mt-3">Loading threads...</p>
@@ -380,7 +380,7 @@ const ForumApp = {
             if (!fid) return ''; // Skip invalid entries
 
             return `
-                <a href="/forum/${fid}" class="btn btn-outline-primary btn-sm" title="${Utils.escapeHtml(description)}">
+                <a href="/forum/${fid}" class="btn btn-outline-success btn-sm" title="${Utils.escapeHtml(description)}">
                     <i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(name)}
                 </a>
             `;

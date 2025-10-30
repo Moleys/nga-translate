@@ -169,7 +169,7 @@ const ForumPage = {
         data.forEach(category => {
             html += `
                 <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header bg-success text-white">
                         <h4 class="mb-0"><i class="fa-solid fa-folder-open"></i> ${Utils.escapeHtml(category.category)}</h4>
                     </div>
                     <div class="card-body">

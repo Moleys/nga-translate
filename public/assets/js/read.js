@@ -449,7 +449,7 @@ const ThreadReader = {
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div class="flex-grow-1">
                                 <span class="post-author">${Utils.escapeHtml(author)}</span>
-                                ${isOriginalPost ? '<span class="badge bg-primary ms-2">OP</span>' : ''}
+                                ${isOriginalPost ? '<span class="badge bg-success ms-2">OP</span>' : ''}
                                 <br>
                                 <small class="text-muted">
                                     <i class="fa-solid fa-clock"></i> ${postDate}
@@ -1386,7 +1386,7 @@ const ThreadReader = {
                            max="${this.totalPages}"
                            value="${this.currentPage}"
                            autocomplete="off">
-                    <button type="submit" class="btn btn-sm btn-primary">Go</button>
+                    <button type="submit" class="btn btn-sm btn-success">Go</button>
                 </form>
                 <span class="text-muted small">/ ${this.totalPages}</span>
             </div>
@@ -1622,7 +1622,7 @@ const ThreadReader = {
             }
             // Fallback: show link
             const safeUrl = Utils.escapeHtml(cleanUrl);
-            return `<a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-primary my-2"><i class="fa-solid fa-circle-play"></i> View Video</a>`;
+            return `<a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-success my-2"><i class="fa-solid fa-circle-play"></i> View Video</a>`;
         });
 
         // Convert standalone URLs to links (but not URLs in HTML attributes)
@@ -1650,7 +1650,7 @@ const ThreadReader = {
         const container = document.getElementById('posts-list');
         container.innerHTML = `
             <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
+                <div class="spinner-border text-success" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
                 <p class="mt-3">Loading posts...</p>

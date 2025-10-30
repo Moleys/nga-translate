@@ -46,7 +46,7 @@ function showUpdateNotification() {
                 <strong>Update Available</strong>
                 <p class="mb-0 small">A new version is available. Refresh to update.</p>
             </div>
-            <button class="btn btn-sm btn-primary ms-3" onclick="window.location.reload()">
+            <button class="btn btn-sm btn-success ms-3" onclick="window.location.reload()">
                 Refresh
             </button>
         </div>
@@ -76,7 +76,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 function showInstallPrompt() {
     const installButton = document.createElement('button');
-    installButton.className = 'btn btn-primary position-fixed bottom-0 end-0 m-3';
+    installButton.className = 'btn btn-success position-fixed bottom-0 end-0 m-3';
     installButton.style.zIndex = '10000';
     installButton.innerHTML = '<i class="fa-solid fa-download"></i> Install App';
     installButton.id = 'pwa-install-btn';

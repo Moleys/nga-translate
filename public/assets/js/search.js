@@ -122,7 +122,7 @@ const SearchApp = {
         const container = document.getElementById('thread-results');
 
         if (!append) {
-            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Searching threads...</p></div>';
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Searching threads...</p></div>';
         } else {
             document.getElementById('thread-sentinel').querySelector('.spinner-border').style.display = 'inline-block';
             document.getElementById('thread-sentinel-text').style.display = 'block';
@@ -156,7 +156,7 @@ const SearchApp = {
         const container = document.getElementById('forum-results');
 
         if (!append) {
-            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Searching forums...</p></div>';
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Searching forums...</p></div>';
         } else {
             document.getElementById('forum-sentinel').querySelector('.spinner-border').style.display = 'inline-block';
             document.getElementById('forum-sentinel-text').style.display = 'block';
@@ -256,7 +256,7 @@ const SearchApp = {
                                     ${postDate ? ` • <i class="fa-solid fa-calendar-days"></i> ${postDate}` : ''}
                                     ${fid ? ` • <a href="/forum/${fid}" class="text-decoration-none">View Forum</a>` : ''}
                                 </p>
-                                <span class="badge bg-primary rounded-pill">
+                                <span class="badge bg-success rounded-pill">
                                     <i class="fa-solid fa-comment-dots"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
                                 </span>
                             </div>

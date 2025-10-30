@@ -20,7 +20,7 @@
                     <i class="fa-solid fa-arrow-left"></i> Back
                 </a>
                 <button id="bookmark-btn" class="btn btn-outline-warning btn-sm" title="Bookmark this thread">
-                    <i class="fa-regular fa-bookmark"></i> <span id="bookmark-text">Bookmark</span>
+                    <i class="fa-regular fa-bookmark"></i>
                 </button>
             </div>
         </div>
@@ -29,7 +29,7 @@
         <div id="thread-posts" data-tid="{$tid}">
             <div id="posts-list">
                 <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
+                    <div class="spinner-border text-success" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <p class="mt-3">Loading posts...</p>
@@ -92,7 +92,7 @@
                 <button type="button" class="btn btn-danger btn-sm p-1" title="Empty" onclick="ThreadReader.emptyGlossaryInput()">
                     <i class="fa fa-eraser"></i>
                 </button>
-                <button type="button" class="btn btn-primary btn-sm p-1" title="Copy text raw" onclick="ThreadReader.copyGlossaryRaw()">
+                <button type="button" class="btn btn-success btn-sm p-1" title="Copy text raw" onclick="ThreadReader.copyGlossaryRaw()">
                     <i class="fa fa-copy"></i>
                 </button>
             </div>
@@ -159,7 +159,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="glossary-save-btn">Save</button>
+        <button type="button" class="btn btn-success" id="glossary-save-btn">Save</button>
       </div>
     </div>
   </div>
@@ -186,7 +186,7 @@
         <div class="mb-2 d-flex gap-2 flex-wrap">
           <button type="button" class="btn btn-sm btn-outline-secondary" id="ocr-copy-text">Copy Text</button>
           <button type="button" class="btn btn-sm btn-outline-secondary" id="ocr-fix-breaks">Fix Line Breaks</button>
-          <button type="button" class="btn btn-sm btn-outline-primary" id="ocr-translate-btn">Translate</button>
+          <button type="button" class="btn btn-sm btn-outline-success" id="ocr-translate-btn">Translate</button>
         </div>
         <hr>
         <div>
