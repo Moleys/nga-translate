@@ -1,3 +1,5 @@
+import { ONNXPaddleOCR } from "https://esm.sh/onnx-ocr-js";
+
 const ThreadReader = {
     currentPage: 1,
     currentTid: null,
@@ -5,6 +7,12 @@ const ThreadReader = {
     totalPages: 1,
     threadInfo: null,
     rawThreadInfo: null, // Store raw Chinese data before translation
+
+    // ppOCRv5 OCR system
+    ocrSystem: null,
+    ocrTextSystem: null,
+    ocrInitialized: false,
+    ocrInitializing: false,
 
     init() {
         const threadPage = document.getElementById('thread-posts');
@@ -1168,6 +1176,156 @@ const ThreadReader = {
 
     lastOcrImageUrl: null,
 
+    // ppOCRv5 model URLs
+    MODEL_URLS: {
+        det: "/assets/models/ppocrv5/det/det.onnx",
+        rec: "/assets/models/ppocrv5/rec/rec.onnx",
+        cls: "/assets/models/ppocrv5/cls/cls.onnx",
+        dict: "/assets/models/ppocrv5/ppocrv5_dict.txt"
+    },
+    CACHE_NAME: "onnx-ocr-models-v1",
+
+    async fetchWithCache(url, isText = false) {
+        try {
+            const cache = await caches.open(this.CACHE_NAME);
+            let response = await cache.match(url);
+
+            if (response) {
+                return isText ? await response.text() : new Uint8Array(await response.arrayBuffer());
+            }
+
+            response = await fetch(url);
+            await cache.put(url, response.clone());
+
+            return isText ? await response.text() : new Uint8Array(await response.arrayBuffer());
+        } catch (error) {
+            console.error('Cache fetch error:', error);
+            const response = await fetch(url);
+            return isText ? await response.text() : new Uint8Array(await response.arrayBuffer());
+        }
+    },
+
+    updateOcrProgress(percent, text) {
+        const progressEl = document.getElementById('ocr-progress');
+        if (progressEl) {
+            progressEl.style.width = percent + '%';
+        }
+        const ta = document.getElementById('ocr-text');
+        if (ta && text) {
+            ta.value = text;
+        }
+    },
+
+    async loadModelsWithProgress() {
+        const total = 4;
+        let loaded = 0;
+
+        this.updateOcrProgress(0, 'Loading models from cache or network...');
+
+        const detModel = await this.fetchWithCache(this.MODEL_URLS.det);
+        loaded++;
+        this.updateOcrProgress(Math.round((loaded / total) * 100), `Loading models... (${loaded}/${total})`);
+
+        const recModel = await this.fetchWithCache(this.MODEL_URLS.rec);
+        loaded++;
+        this.updateOcrProgress(Math.round((loaded / total) * 100), `Loading models... (${loaded}/${total})`);
+
+        const clsModel = await this.fetchWithCache(this.MODEL_URLS.cls);
+        loaded++;
+        this.updateOcrProgress(Math.round((loaded / total) * 100), `Loading models... (${loaded}/${total})`);
+
+        const charset = await this.fetchWithCache(this.MODEL_URLS.dict, true);
+        loaded++;
+        this.updateOcrProgress(100, 'Models loaded, initializing OCR...');
+
+        return [detModel, recModel, clsModel, charset];
+    },
+
+    async initOCR() {
+        if (this.ocrInitialized || this.ocrInitializing) return;
+        
+        this.ocrInitializing = true;
+
+        try {
+            // Wait for OpenCV to be ready
+            let cv2;
+            if (typeof cv !== 'undefined') {
+                if (cv instanceof Promise) {
+                    cv2 = await cv;
+                } else {
+                    cv2 = cv;
+                }
+            } else {
+                throw new Error('OpenCV not loaded');
+            }
+
+            const [detModel, recModel, clsModel, charset] = await this.loadModelsWithProgress();
+
+            this.ocrSystem = new ONNXPaddleOCR({ use_angle_cls: true });
+            this.ocrTextSystem = await this.ocrSystem.init({
+                cv: cv2,
+                ort: window.ort,
+                det_model_array_buffer: detModel,
+                rec_model_array_buffer: recModel,
+                cls_model_array_buffer: clsModel,
+                rec_char_dict: charset
+            });
+
+            this.ocrInitialized = true;
+            this.updateOcrProgress(100, 'OCR ready!');
+            console.log('ppOCRv5 initialized successfully');
+        } catch (error) {
+            console.error('OCR initialization error:', error);
+            this.ocrInitialized = false;
+            throw error;
+        } finally {
+            this.ocrInitializing = false;
+        }
+    },
+
+    formatOCRResults(results, imageWidth) {
+        if (!results || !results[0]) return "";
+
+        const blocks = results[0].map(item => {
+            const coords = item[0];
+            const text = item[1][0];
+            const confidence = item[1][1];
+
+            const xs = coords.map(p => p[0]);
+            const ys = coords.map(p => p[1]);
+            const minX = Math.min(...xs);
+            const minY = Math.min(...ys);
+            const maxX = Math.max(...xs);
+            const maxY = Math.max(...ys);
+
+            return { text, minX, minY, maxX, maxY, confidence };
+        });
+
+        blocks.sort((a, b) => {
+            const yDiff = a.minY - b.minY;
+            if (Math.abs(yDiff) < 20) {
+                return a.minX - b.minX;
+            }
+            return yDiff;
+        });
+
+        let output = "";
+        let lastY = -1;
+        const lineThreshold = 20;
+
+        for (const block of blocks) {
+            if (lastY === -1 || Math.abs(block.minY - lastY) >= lineThreshold) {
+                if (output.length > 0) output += "\n";
+                lastY = block.minY;
+            } else {
+                output += " ";
+            }
+            output += block.text;
+        }
+
+        return output;
+    },
+
     async openOcrModal(imgSrc) {
         const modalEl = document.getElementById('ocrModal');
         if (!modalEl) return;
@@ -1186,32 +1344,84 @@ const ThreadReader = {
 
     async runOcr(imageUrl) {
         try {
-            if (!window.Tesseract || !Tesseract.recognize) {
-                console.warn('Tesseract not loaded');
-                return;
-            }
             const ta = document.getElementById('ocr-text');
-            if (ta) ta.value = 'Recognizing with Tesseract...';
             const progressEl = document.getElementById('ocr-progress');
-            if (progressEl) progressEl.style.width = '0%';
-            const res = await Tesseract.recognize(imageUrl, 'chi_sim', {
-                logger: (m) => {
-                    if (m && typeof m.progress === 'number' && progressEl) {
-                        const pct = Math.max(0, Math.min(100, Math.round(m.progress * 100)));
-                        progressEl.style.width = pct + '%';
-                    }
+
+            // Initialize OCR if not already done
+            if (!this.ocrInitialized) {
+                if (ta) ta.value = 'Initializing OCR system...';
+                await this.initOCR();
+            }
+
+            if (!this.ocrInitialized || !this.ocrSystem || !this.ocrTextSystem) {
+                throw new Error('OCR system not initialized');
+            }
+
+            // Wait for OpenCV to be ready
+            let cv2;
+            if (typeof cv !== 'undefined') {
+                if (cv instanceof Promise) {
+                    cv2 = await cv;
+                } else {
+                    cv2 = cv;
                 }
+            } else {
+                throw new Error('OpenCV not loaded');
+            }
+
+            if (ta) ta.value = 'Fetching image...';
+            if (progressEl) progressEl.style.width = '10%';
+
+            // Fetch image
+            const response = await fetch(imageUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const blob = await response.blob();
+            if (progressEl) progressEl.style.width = '30%';
+
+            // Load image
+            const img = await new Promise((resolve, reject) => {
+                const imgEl = new Image();
+                imgEl.crossOrigin = "anonymous";
+                imgEl.onload = () => resolve(imgEl);
+                imgEl.onerror = () => reject(new Error('Failed to load image'));
+                imgEl.src = URL.createObjectURL(blob);
             });
-            let text = res && res.data && res.data.text ? res.data.text : '';
-            // Normalize OCR output
-            text = text.replace(/ +/g, '');
+
+            if (progressEl) progressEl.style.width = '50%';
+            if (ta) ta.value = 'Running OCR...';
+
+            // Convert image to OpenCV Mat
+            const mat = cv2.imread(img);
+            const mat3ch = new cv2.Mat();
+            cv2.cvtColor(mat, mat3ch, cv2.COLOR_RGBA2BGR);
+
+            if (progressEl) progressEl.style.width = '70%';
+
+            // Run OCR
+            const results = await this.ocrSystem.ocr(this.ocrTextSystem, mat3ch, true, true, true);
+
+            if (progressEl) progressEl.style.width = '90%';
+
+            // Format results
+            const formattedText = this.formatOCRResults(results, img.width);
+
+            // Normalize output (remove extra spaces, clean up)
+            let text = formattedText.replace(/ +/g, '');
             text = text.split('\n').map(l => l.trim()).filter(Boolean).join('\n');
-            if (ta) ta.value = text || '';
+
+            if (ta) ta.value = text || 'No text detected.';
             if (progressEl) progressEl.style.width = '100%';
+
+            // Cleanup
+            mat.delete();
+            mat3ch.delete();
+            URL.revokeObjectURL(img.src);
+
         } catch (err) {
             console.error('OCR error:', err);
             const ta = document.getElementById('ocr-text');
-            if (ta) ta.value = '[OCR error]';
+            if (ta) ta.value = `[OCR error: ${err.message}]`;
         }
     },
 
