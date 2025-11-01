@@ -1202,10 +1202,35 @@ const ThreadReader = {
                     }
                 }
             });
-            let text = res && res.data && res.data.text ? res.data.text : '';
-            // Normalize OCR output
+
+            // Filter by confidence threshold (80%)
+            const CONFIDENCE_THRESHOLD = 80;
+            let text = '';
+
+            if (res && res.data) {
+                // Use line-level confidence filtering to preserve line breaks
+                if (res.data.lines && res.data.lines.length > 0) {
+                    text = res.data.lines
+                        .map(line => {
+                            // Filter words in each line by confidence
+                            if (line.words && line.words.length > 0) {
+                                return line.words
+                                    .filter(word => word.confidence >= CONFIDENCE_THRESHOLD)
+                                    .map(word => word.text)
+                                    .join('');
+                            }
+                            return '';
+                        })
+                        .filter(Boolean)
+                        .join('\n');
+                } else {
+                    // Fallback to raw text if line data unavailable
+                    text = res.data.text || '';
+                }
+            }
+
+            // Normalize OCR output (remove extra spaces, keep line breaks)
             text = text.replace(/ +/g, '');
-            text = text.split('\n').map(l => l.trim()).filter(Boolean).join('\n');
             if (ta) ta.value = text || '';
             if (progressEl) progressEl.style.width = '100%';
         } catch (err) {
