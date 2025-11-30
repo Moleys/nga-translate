@@ -12,12 +12,12 @@
     "tauri:build": "tauri build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/api": "2.9.0",
     "vue": "^3.4.0",
     "vue-router": "^4.4.5"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0",
+    "@tauri-apps/cli": "2.9.4",
     "@types/node": "^20.0.0",
     "@vitejs/plugin-vue": "^5.0.0",
     "autoprefixer": "^10.4.20",
