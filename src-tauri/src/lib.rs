@@ -2,7 +2,7 @@ use std::{
     collections::{HashMap, HashSet},
     fs::File,
     io::{BufRead, BufReader},
-    path::{Path, PathBuf},
+    path::Path,
     sync::Arc,
 };
 
@@ -507,6 +507,7 @@ pub struct TranslatorState(pub Arc<Translator>);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn translate_sample_matches_go_output() {

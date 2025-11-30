@@ -23,9 +23,9 @@ fn health_check() -> String {
 
 #[cfg(feature = "tauri-app")]
 fn resolve_data_dir(app: &AppHandle) -> Option<std::path::PathBuf> {
-    let resolver = app.path_resolver();
+    let resolver = app.path().resource_dir().ok();
 
-    if let Some(resource_dir) = resolver.resource_dir() {
+    if let Some(resource_dir) = resolver.as_ref() {
         let candidate = resource_dir.join("data");
         if candidate.exists() {
             return Some(candidate);
@@ -67,7 +67,9 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![translate_text, health_check])
-        .run(tauri::generate_context!())
+        .run(tauri::generate_context!(
+            "../../tauri.conf.json"
+        ))
         .expect("error while running tauri application");
 }
 
