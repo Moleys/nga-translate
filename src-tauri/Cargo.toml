@@ -1,0 +1,27 @@
+[package]
+name = "nga-translate-shell"
+version = "0.1.0"
+edition = "2021"
+authors = ["NGA Translate"]
+description = "Desktop shell for NGA Translate using Tauri"
+
+[features]
+default = ["tauri-app"]
+tauri-app = ["tauri"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [], optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+once_cell = "1.18"
+regex = "1.10"
+anyhow = "1.0"
+indexmap = { version = "1.9.3", features = ["std"] }
+
+[[bin]]
+name = "nga-translate-shell"
+path = "src/main.rs"
+required-features = ["tauri-app"]

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__cometix-indexer__index_project",
+      "mcp__cometix-indexer__codebase_search",
+      "Bash(test:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

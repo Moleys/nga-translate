@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-midnight text-fog font-["Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe_UI",sans-serif] min-h-screen;
+  background: radial-gradient(circle at 10% 20%, rgba(154, 214, 77, 0.08), transparent 35%),
+    radial-gradient(circle at 90% 10%, rgba(154, 214, 77, 0.05), transparent 40%),
+    linear-gradient(135deg, #0b1410, #0e1813 40%, #0b1410);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #1b2b21, #233126);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: #0b1410;
+}
+
+.card {
+  @apply bg-pine/80 border border-moss/50 rounded-2xl shadow-card backdrop-blur px-5 py-4;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-semibold transition active:translate-y-[1px];
+}
+
+.btn-primary {
+  @apply bg-mint text-midnight shadow-card hover:shadow-none;
+}
+
+.btn-ghost {
+  @apply border border-moss/60 text-fog hover:bg-moss/30;
+}
+
+.input {
+  @apply w-full rounded-xl border border-moss/60 bg-pine/80 px-4 py-3 text-fog placeholder:text-smoke focus:outline-none focus:ring-2 focus:ring-mint/60;
+}
+
+.badge {
+  @apply inline-flex items-center gap-1 rounded-full bg-moss/50 px-3 py-1 text-xs text-smoke;
+}
+
+.pill {
+  @apply inline-flex items-center gap-2 rounded-full bg-moss/50 px-3 py-2 text-sm text-smoke;
+}
+
+.grid-cards {
+  @apply grid gap-4 md:grid-cols-2 xl:grid-cols-3;
+}
+
+.section-title {
+  @apply text-lg font-semibold text-fog;
+}
+
+.muted { @apply text-smoke; }
+
+.title-h1 { @apply text-3xl font-bold tracking-tight; }
+.title-h2 { @apply text-xl font-semibold; }
+
+.nav-link { @apply text-sm font-medium text-smoke hover:text-mint transition; }
+.nav-active { @apply text-mint; }

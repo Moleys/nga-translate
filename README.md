@@ -53,6 +53,46 @@ php -S localhost:8000 -t public
 http://localhost:8000
 ```
 
+## 🖥️ Desktop App (Tauri + Vue)
+
+The PHP layer is gone. A new Vue + Vite + Tailwind shell runs inside Tauri and talks directly to:
+- Rust VietPhrase translator (local dictionaries in `src-tauri/data`, command `translate_text`)
+- NGA mobile API (signed requests from the Vue client; optionally supply your `nga_access_uid` + `nga_access_token`)
+
+Features carried over:
+- Forum browser with favorites
+- Thread reader with local translation
+- Search forums/threads
+- Bookmarks & history (localStorage)
+- Glossary injection for translations
+- Tailwind dark theme
+
+### Prerequisites
+- Node.js 18+
+- Rust toolchain + a C compiler (on Debian/Ubuntu: `sudo apt-get install build-essential`)
+- System GTK/WebKit bits for Tauri 2 on Linux (e.g. `libgtk-3-dev libjavascriptcoregtk-4.0-dev libwebkit2gtk-4.0-dev libsoup-3.0-dev pkg-config`)
+
+### Dev workflow
+```bash
+npm install           # generates package-lock, installs Vite/Vue/Tauri CLI
+npm run tauri:dev     # runs Vite dev server and launches Tauri
+```
+
+### Build
+```bash
+npm run build         # builds the Vue frontend to dist/
+npm run tauri:build   # bundles the desktop app with local dictionaries
+```
+
+### Android (requires Tauri v2 toolchain)
+- Install Android SDK + NDK + JDK 17.
+- Set `ANDROID_HOME` and `NDK_HOME`, then run:
+```bash
+npm install
+npm run tauri android init
+npm run tauri android build
+```
+
 ## 📁 Project Structure
 
 ```
