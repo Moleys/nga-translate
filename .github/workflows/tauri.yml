@@ -89,7 +89,7 @@ jobs:
       - name: Init Android project (if missing)
         run: |
           if [ ! -d "src-tauri/gen/android" ]; then
-            npm run tauri android init -- --force
+            npm run tauri android init
           fi
 
       - name: Build Tauri (android)
