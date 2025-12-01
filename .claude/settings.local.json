@@ -3,13 +3,7 @@
     "allow": [
       "mcp__cometix-indexer__index_project",
       "mcp__cometix-indexer__codebase_search",
-      "Bash(test:*)",
-      "Bash(flutter analyze:*)",
-      "Bash(curl:*)",
-      "Bash(flutter build:*)",
-      "Bash(adb devices:*)",
-      "Bash(adb install:*)",
-      "Bash(flutter pub get:*)"
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []
