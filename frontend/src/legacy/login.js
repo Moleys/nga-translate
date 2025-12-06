@@ -1,4 +1,4 @@
-// Login Page - Handle NGA authentication credentials with premium UI
+// Login Page - Handle NGA authentication credentials
 const LoginPage = {
     init() {
         this.loadExistingCredentials();
@@ -47,7 +47,6 @@ const LoginPage = {
         }
 
         try {
-            // Save to cookies (1 year expiry)
             Cookies.set('nga_access_uid', access_uid, { expires: 365, sameSite: 'Lax' });
             Cookies.set('nga_access_token', access_token, { expires: 365, sameSite: 'Lax' });
             Cookies.set('nga_app_id', app_id, { expires: 365, sameSite: 'Lax' });
@@ -56,7 +55,6 @@ const LoginPage = {
             this.showStatus('Credentials saved successfully!', 'success');
             this.updateLoginStatus();
 
-            // Dispatch event for other modules to update
             window.dispatchEvent(new Event('nga_auth_updated'));
         } catch (error) {
             this.showStatus('Failed to save credentials: ' + error.message, 'error');
@@ -66,13 +64,11 @@ const LoginPage = {
     clearCredentials() {
         if (confirm('Are you sure you want to clear all saved credentials?')) {
             try {
-                // Delete cookies
                 Cookies.remove('nga_access_uid');
                 Cookies.remove('nga_access_token');
                 Cookies.remove('nga_app_id');
                 Cookies.remove('nga_auth_saved_at');
 
-                // Clear form
                 document.getElementById('access_uid').value = '';
                 document.getElementById('access_token').value = '';
                 document.getElementById('app_id').value = '1010';
@@ -80,7 +76,6 @@ const LoginPage = {
                 this.showStatus('Credentials cleared successfully', 'info');
                 this.updateLoginStatus();
 
-                // Dispatch event
                 window.dispatchEvent(new Event('nga_auth_updated'));
             } catch (error) {
                 this.showStatus('Failed to clear credentials: ' + error.message, 'error');
@@ -96,8 +91,8 @@ const LoginPage = {
 
         if (access_uid && access_token) {
             return {
-                access_uid: access_uid,
-                access_token: access_token,
+                access_uid,
+                access_token,
                 app_id: app_id || '1010',
                 saved_at: saved_at ? parseInt(saved_at) : null
             };
@@ -109,31 +104,32 @@ const LoginPage = {
     updateLoginStatus() {
         const auth = this.getAuth();
         const statusDiv = document.getElementById('login-status');
+        if (!statusDiv) return;
 
         if (auth) {
             const savedDate = auth.saved_at ? new Date(auth.saved_at).toLocaleString() : 'Unknown';
-            statusDiv.className = 'mb-6 p-4 rounded-xl bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800';
+            statusDiv.className = 'rounded-lg border border-green-200 bg-green-50 p-4';
             statusDiv.classList.remove('hidden');
             statusDiv.innerHTML = `
                 <div class="flex items-start gap-3">
-                    <i class="fa-solid fa-circle-check text-emerald-500 text-xl mt-0.5"></i>
+                    <i class="fa-solid fa-circle-check text-green-600 text-xl mt-0.5"></i>
                     <div>
-                        <strong class="block text-emerald-800">Logged in</strong>
-                        <div class="text-sm mt-2 space-y-1 text-emerald-700">
-                            <div>User ID: <code class="px-1.5 py-0.5 bg-emerald-100 rounded">${Utils.escapeHtml(auth.access_uid)}</code></div>
-                            <div>Token: <code class="px-1.5 py-0.5 bg-emerald-100 rounded">${this.maskToken(auth.access_token)}</code></div>
+                        <div class="font-medium text-green-800">Logged in</div>
+                        <div class="text-sm mt-2 space-y-1 text-green-700">
+                            <div>User ID: <code class="px-1.5 py-0.5 bg-green-100 rounded text-xs">${Utils.escapeHtml(auth.access_uid)}</code></div>
+                            <div>Token: <code class="px-1.5 py-0.5 bg-green-100 rounded text-xs">${this.maskToken(auth.access_token)}</code></div>
                             <div>Saved: ${savedDate}</div>
                         </div>
                     </div>
                 </div>
             `;
         } else {
-            statusDiv.className = 'mb-6 p-4 rounded-xl bg-amber-50 border-l-4 border-amber-400 text-amber-800';
+            statusDiv.className = 'rounded-lg border border-amber-200 bg-amber-50 p-4';
             statusDiv.classList.remove('hidden');
             statusDiv.innerHTML = `
                 <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
-                    <span><strong>Not logged in</strong> - Enter your credentials below</span>
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                    <span class="text-amber-800"><strong>Not logged in</strong> - Enter your credentials below</span>
                 </div>
             `;
         }
@@ -141,35 +137,33 @@ const LoginPage = {
 
     showStatus(message, type) {
         const statusDiv = document.getElementById('login-status');
+        if (!statusDiv) return;
 
         const styles = {
-            success: 'bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800',
-            error: 'bg-red-50 border-l-4 border-red-500 text-red-800',
-            warning: 'bg-amber-50 border-l-4 border-amber-400 text-amber-800',
-            info: 'bg-sky-50 border-l-4 border-sky-400 text-sky-800'
+            success: 'border-green-200 bg-green-50 text-green-800',
+            error: 'border-red-200 bg-red-50 text-red-800',
+            warning: 'border-amber-200 bg-amber-50 text-amber-800',
+            info: 'border-blue-200 bg-blue-50 text-blue-800'
         };
 
         const icons = {
-            success: 'fa-circle-check text-emerald-500',
-            error: 'fa-circle-exclamation text-red-500',
-            warning: 'fa-triangle-exclamation text-amber-500',
-            info: 'fa-info-circle text-sky-500'
+            success: 'fa-circle-check text-green-600',
+            error: 'fa-circle-exclamation text-red-600',
+            warning: 'fa-triangle-exclamation text-amber-600',
+            info: 'fa-info-circle text-blue-600'
         };
 
-        statusDiv.className = `mb-6 p-4 rounded-xl ${styles[type]}`;
+        statusDiv.className = `rounded-lg border p-4 ${styles[type]}`;
+        statusDiv.classList.remove('hidden');
         statusDiv.innerHTML = `
             <div class="flex items-center gap-3">
                 <i class="fa-solid ${icons[type]}"></i>
                 <span>${message}</span>
             </div>
         `;
-        statusDiv.classList.remove('hidden');
 
-        // Auto hide after 5 seconds for success/info messages
         if (type === 'success' || type === 'info') {
-            setTimeout(() => {
-                this.updateLoginStatus();
-            }, 5000);
+            setTimeout(() => this.updateLoginStatus(), 5000);
         }
     },
 
@@ -180,7 +174,6 @@ const LoginPage = {
     }
 };
 
-// Initialize login page
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     if (loginForm) {

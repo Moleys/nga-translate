@@ -1,5 +1,9 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { Input } from "$lib/components/ui/input/index.js";
+  import { Separator } from "$lib/components/ui/separator/index.js";
+
   import Home from "./pages/Home.svelte";
   import Forums from "./pages/Forums.svelte";
   import ForumView from "./pages/ForumView.svelte";
@@ -66,223 +70,228 @@
     return { component: NotFound, title: "Page Not Found", props: {} };
   };
 
-  let currentPath = window.location.pathname;
-  let current = resolveRoute(currentPath);
-  let currentComponent = current.component;
-  let currentProps = current.props;
-  let pageTitle = current.title || "NGA Forums";
+  let currentPath = $state(window.location.pathname);
+  let current = $derived(resolveRoute(currentPath));
+  let mobileMenuOpen = $state(false);
+  let searchQuery = $state("");
+  let darkMode = $state(false);
 
-  const handlePop = () => {
+  function handlePopState() {
     currentPath = window.location.pathname;
-    current = resolveRoute(currentPath);
-    currentComponent = current.component;
-    currentProps = current.props;
-    pageTitle = current.title || "NGA Forums";
-  };
+  }
+
+  function handleSearch(e) {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
+    }
+  }
+
+  function toggleMobileMenu() {
+    mobileMenuOpen = !mobileMenuOpen;
+  }
+
+  function toggleDarkMode() {
+    darkMode = !darkMode;
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('nga_dark_mode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('nga_dark_mode', 'false');
+    }
+  }
 
   onMount(() => {
-    window.addEventListener("popstate", handlePop);
-  });
+    // Load dark mode preference
+    const savedDarkMode = localStorage.getItem('nga_dark_mode');
+    if (savedDarkMode === 'true' || (!savedDarkMode && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      darkMode = true;
+      document.documentElement.classList.add('dark');
+    }
 
-  onDestroy(() => {
-    window.removeEventListener("popstate", handlePop);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   });
 </script>
 
 <svelte:head>
-  <title>{pageTitle}</title>
+  <title>{current.title || "NGA Forums"}</title>
 </svelte:head>
 
-<!-- Premium Navbar -->
-<nav
-  class="sticky top-0 z-50 backdrop-blur-md bg-gradient-to-r from-[#5a9d8a] to-[#4a8d7a] shadow-lg"
+<!-- Navigation -->
+<header
+  class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
 >
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between h-16">
-      <!-- Brand -->
+  <div class="container flex h-14 max-w-screen-2xl items-center px-4 mx-auto">
+    <!-- Brand -->
+    <a href="/" class="mr-6 flex items-center space-x-2">
+      <i class="fa-solid fa-comments text-xl text-primary"></i>
+      <span class="hidden font-bold sm:inline-block">NGA Forums</span>
+    </a>
+
+    <!-- Desktop Navigation -->
+    <nav class="hidden md:flex items-center gap-1 text-sm">
       <a
         href="/"
-        class="flex items-center gap-3 text-white font-bold text-xl hover:opacity-90 transition-opacity"
+        class="px-3 py-2 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground"
       >
-        <div
-          class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"
-        >
-          <i class="fa-solid fa-comments"></i>
-        </div>
-        <span class="hidden sm:block">NGA Forums</span>
+        <i class="fa-solid fa-house mr-1.5"></i>Home
       </a>
-
-      <!-- Desktop Navigation -->
-      <div class="hidden lg:flex items-center gap-1">
-        <a
-          href="/"
-          class="px-4 py-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 flex items-center gap-2"
-        >
-          <i class="fa-solid fa-house"></i>
-          <span>Home</span>
-        </a>
-        <a
-          href="/forums"
-          class="px-4 py-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 flex items-center gap-2"
-        >
-          <i class="fa-solid fa-table-cells"></i>
-          <span>Forums</span>
-        </a>
-        <a
-          href="/history"
-          class="px-4 py-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 flex items-center gap-2"
-        >
-          <i class="fa-solid fa-clock-rotate-left"></i>
-          <span>History</span>
-        </a>
-        <a
-          href="/bookmarks"
-          class="px-4 py-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 flex items-center gap-2"
-        >
-          <i class="fa-solid fa-bookmark"></i>
-          <span>Bookmarks</span>
-        </a>
-        <a
-          href="/glossary"
-          class="px-4 py-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200 flex items-center gap-2"
-        >
-          <i class="fa-solid fa-book"></i>
-          <span>Glossary</span>
-        </a>
-        <span id="navbar-auth-status"></span>
-        <button
-          id="translate-toggle"
-          class="ml-2 px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all duration-200"
-          type="button"
-          title="Toggle translation"
-        >
-          <i class="fa-solid fa-language"></i>
-        </button>
-      </div>
-
-      <!-- Search Form -->
-      <form
-        class="hidden md:flex items-center gap-2 ml-4"
-        id="search-form"
-        role="search"
+      <a
+        href="/forums"
+        class="px-3 py-2 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground"
       >
+        <i class="fa-solid fa-table-cells mr-1.5"></i>Forums
+      </a>
+      <a
+        href="/history"
+        class="px-3 py-2 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground"
+      >
+        <i class="fa-solid fa-clock-rotate-left mr-1.5"></i>History
+      </a>
+      <a
+        href="/bookmarks"
+        class="px-3 py-2 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground"
+      >
+        <i class="fa-solid fa-bookmark mr-1.5"></i>Bookmarks
+      </a>
+      <a
+        href="/glossary"
+        class="px-3 py-2 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground"
+      >
+        <i class="fa-solid fa-book mr-1.5"></i>Glossary
+      </a>
+    </nav>
+
+    <div class="flex flex-1 items-center justify-end gap-2">
+      <!-- Search -->
+      <form onsubmit={handleSearch} class="hidden sm:flex items-center gap-2">
         <div class="relative">
-          <input
-            type="search"
-            id="search-input"
-            class="w-48 lg:w-64 px-4 py-2 pl-10 rounded-xl bg-white/20 border border-white/30
-                        text-white placeholder-white/70 focus:bg-white/30 focus:border-white/50
-                        focus:outline-none focus:ring-2 focus:ring-white/20 transition-all duration-200"
-            placeholder="Search..."
-          />
           <i
-            class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-white/70"
+            class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
           ></i>
+          <Input
+            type="search"
+            placeholder="Search..."
+            class="w-48 pl-8"
+            bind:value={searchQuery}
+          />
         </div>
-        <button
-          class="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all duration-200"
-          type="submit"
-        >
-          <i class="fa-solid fa-magnifying-glass"></i>
-        </button>
       </form>
 
-      <!-- Mobile Menu Button -->
-      <button
-        class="lg:hidden p-2 rounded-lg text-white hover:bg-white/10 transition-all duration-200"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
+      <!-- Auth & Translate -->
+      <span id="navbar-auth-status"></span>
+      <Button
+        variant="ghost"
+        size="icon"
+        id="translate-toggle"
+        title="Toggle translation"
       >
-        <i class="fa-solid fa-bars text-xl"></i>
-      </button>
-    </div>
+        <i class="fa-solid fa-language"></i>
+      </Button>
 
-    <!-- Mobile Navigation -->
-    <div class="collapse lg:hidden" id="navbarNav">
-      <div class="py-4 space-y-1 border-t border-white/20">
+      <!-- Dark Mode Toggle -->
+      <Button
+        variant="ghost"
+        size="icon"
+        onclick={toggleDarkMode}
+        title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        <i class="fa-solid {darkMode ? 'fa-sun' : 'fa-moon'}"></i>
+      </Button>
+
+      <!-- Mobile Menu Button -->
+      <Button
+        variant="ghost"
+        size="icon"
+        class="md:hidden"
+        onclick={toggleMobileMenu}
+      >
+        <i class="fa-solid {mobileMenuOpen ? 'fa-times' : 'fa-bars'}"></i>
+      </Button>
+    </div>
+  </div>
+
+  <!-- Mobile Navigation -->
+  {#if mobileMenuOpen}
+    <div class="border-t md:hidden">
+      <nav class="container flex flex-col gap-1 p-4">
         <a
           href="/"
-          class="flex items-center gap-3 px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200"
+          class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent"
+          onclick={() => (mobileMenuOpen = false)}
         >
-          <i class="fa-solid fa-house"></i> Home
+          <i class="fa-solid fa-house"></i>Home
         </a>
         <a
           href="/forums"
-          class="flex items-center gap-3 px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200"
+          class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent"
+          onclick={() => (mobileMenuOpen = false)}
         >
-          <i class="fa-solid fa-table-cells"></i> Forums
+          <i class="fa-solid fa-table-cells"></i>Forums
         </a>
         <a
           href="/history"
-          class="flex items-center gap-3 px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200"
+          class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent"
+          onclick={() => (mobileMenuOpen = false)}
         >
-          <i class="fa-solid fa-clock-rotate-left"></i> History
+          <i class="fa-solid fa-clock-rotate-left"></i>History
         </a>
         <a
           href="/bookmarks"
-          class="flex items-center gap-3 px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200"
+          class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent"
+          onclick={() => (mobileMenuOpen = false)}
         >
-          <i class="fa-solid fa-bookmark"></i> Bookmarks
+          <i class="fa-solid fa-bookmark"></i>Bookmarks
         </a>
         <a
           href="/glossary"
-          class="flex items-center gap-3 px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200"
+          class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent"
+          onclick={() => (mobileMenuOpen = false)}
         >
-          <i class="fa-solid fa-book"></i> Glossary
+          <i class="fa-solid fa-book"></i>Glossary
         </a>
-
-        <!-- Mobile Search -->
-        <form
-          class="flex items-center gap-2 px-4 py-3"
-          id="search-form-mobile"
-          role="search"
+        <Separator class="my-2" />
+        <button
+          class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent w-full text-left"
+          onclick={toggleDarkMode}
         >
-          <input
+          <i class="fa-solid {darkMode ? 'fa-sun' : 'fa-moon'}"></i>
+          {darkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
+        <form onsubmit={handleSearch} class="flex items-center gap-2">
+          <Input
             type="search"
-            class="flex-1 px-4 py-2 rounded-xl bg-white/20 border border-white/30
-                        text-white placeholder-white/70 focus:bg-white/30 focus:outline-none"
             placeholder="Search..."
+            class="flex-1"
+            bind:value={searchQuery}
           />
-          <button
-            class="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white"
-            type="submit"
-          >
+          <Button type="submit" size="icon">
             <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
+          </Button>
         </form>
-      </div>
+      </nav>
     </div>
-  </div>
-</nav>
+  {/if}
+</header>
 
 <!-- Main Content -->
-<main class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-  <svelte:component this={currentComponent} {...currentProps} />
+<main class="container max-w-screen-xl mx-auto py-6 px-4">
+  <svelte:component this={current.component} {...current.props} />
 </main>
 
-<!-- Premium Footer -->
-<footer
-  class="bg-gradient-to-r from-[#e8efed] to-[#f8fbfa] border-t border-gray-200"
->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-3 text-gray-600">
-        <div
-          class="w-10 h-10 bg-gradient-to-br from-[#5a9d8a] to-[#4a8d7a] rounded-xl
-                    flex items-center justify-center text-white shadow-md"
-        >
-          <i class="fa-solid fa-comments"></i>
-        </div>
-        <span class="font-medium">NGA Forums Reader</span>
-      </div>
-      <p class="text-gray-500 text-sm">
-        © 2025 NGA Forums. All rights reserved.
-      </p>
+<!-- Footer -->
+<footer class="border-t py-6 md:py-0">
+  <div
+    class="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row max-w-screen-xl mx-auto px-4"
+  >
+    <div class="flex items-center gap-2 text-muted-foreground">
+      <i class="fa-solid fa-comments text-primary"></i>
+      <span class="text-sm font-medium">NGA Forums Reader</span>
     </div>
+    <p class="text-sm text-muted-foreground">
+      © 2025 NGA Forums. All rights reserved.
+    </p>
   </div>
 </footer>
-
-<style>
-  /* Styles are defined in app.css */
-</style>

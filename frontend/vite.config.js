@@ -8,6 +8,7 @@ export default defineConfig({
   publicDir: resolve(__dirname, 'static'),
   resolve: {
     alias: {
+      '$lib': resolve(__dirname, 'src/lib'),
       '/assets/jieba-wasm-html/jieba_rs_wasm.js': resolve(__dirname, '../public/assets/jieba-wasm-html/jieba_rs_wasm.js')
     }
   },

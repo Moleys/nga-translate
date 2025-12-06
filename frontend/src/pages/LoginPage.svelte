@@ -1,140 +1,285 @@
-<div class="max-w-5xl mx-auto">
+<script>
+  import { onMount } from "svelte";
+  import * as Card from "$lib/components/ui/card/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { Input } from "$lib/components/ui/input/index.js";
+  import * as Alert from "$lib/components/ui/alert/index.js";
+  import { Separator } from "$lib/components/ui/separator/index.js";
+
+  let accessUid = $state("");
+  let accessToken = $state("");
+  let appId = $state("1010");
+
+  let statusMessage = $state("");
+  let statusType = $state("info"); // success, error, warning, info
+  let isLoggedIn = $state(false);
+  let savedAt = $state(null);
+
+  onMount(() => {
+    loadExistingCredentials();
+    updateLoginStatus();
+  });
+
+  function loadExistingCredentials() {
+    const uid = Cookies.get("nga_access_uid");
+    const token = Cookies.get("nga_access_token");
+    const app = Cookies.get("nga_app_id") || "1010";
+
+    if (uid) accessUid = uid;
+    if (token) accessToken = token;
+    if (app) appId = app;
+  }
+
+  function getAuth() {
+    const uid = Cookies.get("nga_access_uid");
+    const token = Cookies.get("nga_access_token");
+    const app = Cookies.get("nga_app_id");
+    const saved = Cookies.get("nga_auth_saved_at");
+
+    if (uid && token) {
+      return {
+        access_uid: uid,
+        access_token: token,
+        app_id: app || "1010",
+        saved_at: saved ? parseInt(saved) : null,
+      };
+    }
+
+    return null;
+  }
+
+  function updateLoginStatus() {
+    const auth = getAuth();
+    isLoggedIn = !!auth;
+    savedAt = auth?.saved_at || null;
+    statusMessage = "";
+  }
+
+  function saveCredentials(e) {
+    e.preventDefault();
+
+    const uid = accessUid.trim();
+    const token = accessToken.trim();
+    const app = appId.trim();
+
+    if (!uid || !token || !app) {
+      showStatus("Please fill in all required fields", "warning");
+      return;
+    }
+
+    try {
+      Cookies.set("nga_access_uid", uid, { expires: 365, sameSite: "Lax" });
+      Cookies.set("nga_access_token", token, { expires: 365, sameSite: "Lax" });
+      Cookies.set("nga_app_id", app, { expires: 365, sameSite: "Lax" });
+      Cookies.set("nga_auth_saved_at", Date.now(), {
+        expires: 365,
+        sameSite: "Lax",
+      });
+
+      showStatus("Credentials saved successfully!", "success");
+      updateLoginStatus();
+
+      window.dispatchEvent(new Event("nga_auth_updated"));
+
+      setTimeout(() => {
+        updateLoginStatus();
+      }, 3000);
+    } catch (error) {
+      showStatus("Failed to save credentials: " + error.message, "error");
+    }
+  }
+
+  function clearCredentials() {
+    if (confirm("Are you sure you want to clear all saved credentials?")) {
+      try {
+        Cookies.remove("nga_access_uid");
+        Cookies.remove("nga_access_token");
+        Cookies.remove("nga_app_id");
+        Cookies.remove("nga_auth_saved_at");
+
+        accessUid = "";
+        accessToken = "";
+        appId = "1010";
+
+        showStatus("Credentials cleared successfully", "info");
+        updateLoginStatus();
+
+        window.dispatchEvent(new Event("nga_auth_updated"));
+
+        setTimeout(() => {
+          updateLoginStatus();
+        }, 3000);
+      } catch (error) {
+        showStatus("Failed to clear credentials: " + error.message, "error");
+      }
+    }
+  }
+
+  function showStatus(message, type) {
+    statusMessage = message;
+    statusType = type;
+  }
+
+  function maskToken(token) {
+    if (!token) return "";
+    if (token.length <= 8) return token;
+    return token.substring(0, 6) + "..." + token.substring(token.length - 6);
+  }
+
+  function getSavedDateString() {
+    return savedAt ? new Date(savedAt).toLocaleString() : "Unknown";
+  }
+</script>
+
+<div class="max-w-2xl mx-auto space-y-6">
   <!-- Header Section -->
-  <div class="text-center mb-10">
+  <div class="text-center">
     <div
-      class="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-[#5a9d8a] to-emerald-600
-                flex items-center justify-center text-white shadow-xl"
+      class="mx-auto w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground mb-4"
     >
-      <i class="fa-solid fa-lock text-3xl"></i>
+      <i class="fa-solid fa-lock text-2xl"></i>
     </div>
-    <h2 class="text-3xl font-bold text-gray-800 mb-2">NGA Account Login</h2>
-    <p class="text-gray-500">Enter your NGA authentication credentials</p>
+    <h1 class="text-3xl font-bold tracking-tight">NGA Account Login</h1>
+    <p class="text-muted-foreground">
+      Enter your NGA authentication credentials
+    </p>
   </div>
 
-  <div
-    class="bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-100/50
-              shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] p-8 md:p-10"
-  >
-    <!-- Status Alert -->
-    <div
-      id="login-status"
-      class="hidden mb-6 p-4 rounded-xl"
-      role="alert"
-    ></div>
-
-    <form id="login-form" class="space-y-6">
-      <!-- User ID -->
-      <div>
-        <label
-          for="access_uid"
-          class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2"
+  <Card.Root>
+    <Card.Content class="pt-6 space-y-6">
+      <!-- Status Alert -->
+      {#if statusMessage}
+        <Alert.Root
+          class="{statusType === 'success'
+            ? 'border-green-200 bg-green-50 text-green-800'
+            : statusType === 'error'
+              ? 'border-red-200 bg-red-50 text-red-800'
+              : statusType === 'warning'
+                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                : 'border-blue-200 bg-blue-50 text-blue-800'}"
         >
-          <i class="fa-solid fa-id-badge text-[#5a9d8a]"></i>
-          User ID (access_uid)
-        </label>
-        <input
-          type="text"
-          id="access_uid"
-          class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white/80
-                      focus:ring-4 focus:ring-[#5a9d8a]/20 focus:border-[#5a9d8a]
-                      placeholder:text-gray-400 transition-all duration-200"
-          placeholder="e.g., 64326084"
-          required
-        />
-        <p class="text-xs text-gray-400 mt-2">Your NGA user ID</p>
-      </div>
+          <i
+            class="fa-solid {statusType === 'success'
+              ? 'fa-circle-check text-green-600'
+              : statusType === 'error'
+                ? 'fa-circle-exclamation text-red-600'
+                : statusType === 'warning'
+                  ? 'fa-triangle-exclamation text-amber-600'
+                  : 'fa-info-circle text-blue-600'}"
+          ></i>
+          <Alert.Description>{statusMessage}</Alert.Description>
+        </Alert.Root>
+      {:else if isLoggedIn}
+        <Alert.Root class="border-green-200 bg-green-50">
+          <i class="fa-solid fa-circle-check text-green-600"></i>
+          <Alert.Title class="text-green-800">Logged in</Alert.Title>
+          <Alert.Description class="text-green-700">
+            <div class="space-y-1 text-sm mt-2">
+              <div>
+                User ID: <code
+                  class="px-1.5 py-0.5 bg-green-100 rounded text-xs"
+                  >{accessUid}</code
+                >
+              </div>
+              <div>
+                Token: <code class="px-1.5 py-0.5 bg-green-100 rounded text-xs"
+                  >{maskToken(accessToken)}</code
+                >
+              </div>
+              <div>Saved: {getSavedDateString()}</div>
+            </div>
+          </Alert.Description>
+        </Alert.Root>
+      {:else}
+        <Alert.Root class="border-amber-200 bg-amber-50">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+          <Alert.Description class="text-amber-800">
+            <strong>Not logged in</strong> - Enter your credentials below
+          </Alert.Description>
+        </Alert.Root>
+      {/if}
 
-      <!-- Access Token -->
-      <div>
-        <label
-          for="access_token"
-          class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2"
-        >
-          <i class="fa-solid fa-key text-[#5a9d8a]"></i>
-          Access Token
-        </label>
-        <input
-          type="text"
-          id="access_token"
-          class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white/80
-                      focus:ring-4 focus:ring-[#5a9d8a]/20 focus:border-[#5a9d8a]
-                      placeholder:text-gray-400 transition-all duration-200"
-          placeholder="e.g., X9bibk3o63p3eao96qb1i5..."
-          required
-        />
-        <p class="text-xs text-gray-400 mt-2">
-          Your NGA access token (alphanumeric string)
-        </p>
-      </div>
+      <form onsubmit={saveCredentials} class="space-y-4">
+        <!-- User ID -->
+        <div class="space-y-2">
+          <label for="access_uid" class="text-sm font-medium">
+            User ID (access_uid)
+          </label>
+          <Input
+            type="text"
+            id="access_uid"
+            bind:value={accessUid}
+            placeholder="e.g., 64326084"
+            required
+          />
+          <p class="text-xs text-muted-foreground">Your NGA user ID</p>
+        </div>
 
-      <!-- App ID -->
-      <div>
-        <label
-          for="app_id"
-          class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2"
-        >
-          <i class="fa-solid fa-mobile-screen-button text-[#5a9d8a]"></i>
-          App ID
-        </label>
-        <input
-          type="text"
-          id="app_id"
-          class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white/80
-                      focus:ring-4 focus:ring-[#5a9d8a]/20 focus:border-[#5a9d8a]
-                      placeholder:text-gray-400 transition-all duration-200"
-          value="1010"
-          required
-        />
-        <p class="text-xs text-gray-400 mt-2">Usually 1010 (default)</p>
-      </div>
+        <!-- Access Token -->
+        <div class="space-y-2">
+          <label for="access_token" class="text-sm font-medium">
+            Access Token
+          </label>
+          <Input
+            type="text"
+            id="access_token"
+            bind:value={accessToken}
+            placeholder="e.g., X9bibk3o63p3eao96qb1i5..."
+            required
+          />
+          <p class="text-xs text-muted-foreground">
+            Your NGA access token (alphanumeric string)
+          </p>
+        </div>
 
-      <!-- Buttons -->
-      <div class="flex flex-col sm:flex-row gap-3 pt-4">
-        <button
-          type="submit"
-          class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl
-                       font-semibold text-white bg-gradient-to-r from-[#5a9d8a] to-[#4a8d7a]
-                       shadow-lg hover:shadow-xl hover:shadow-[#5a9d8a]/25
-                       transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
-        >
-          <i class="fa-solid fa-right-to-bracket"></i>
-          Save Credentials
-        </button>
-        <button
-          type="button"
-          id="logout-btn"
-          class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl
-                       font-medium text-gray-600 bg-gray-100 hover:bg-gray-200
-                       border border-gray-200 hover:border-gray-300 transition-all duration-200"
-        >
-          <i class="fa-solid fa-right-from-bracket"></i>
-          Clear Credentials
-        </button>
-      </div>
-    </form>
+        <!-- App ID -->
+        <div class="space-y-2">
+          <label for="app_id" class="text-sm font-medium"> App ID </label>
+          <Input type="text" id="app_id" bind:value={appId} required />
+          <p class="text-xs text-muted-foreground">Usually 1010 (default)</p>
+        </div>
 
-    <!-- Help Section -->
-    <div class="mt-8 p-6 bg-[#f8fbfa] rounded-2xl border border-[#e8efed]">
-      <h6 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
-        <i class="fa-solid fa-circle-info text-[#5a9d8a]"></i>
-        How to get your credentials:
-      </h6>
-      <ol class="space-y-2 text-sm text-gray-600 list-decimal list-inside">
-        <li>Use NGA official Android app</li>
-        <li>Login to your account</li>
-        <li>Use network monitoring tool (e.g., HTTP Canary, Charles Proxy)</li>
-        <li>
-          Capture API requests to find <code
-            class="px-1.5 py-0.5 bg-gray-100 rounded text-[#5a9d8a]"
-            >access_uid</code
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+          <Button type="submit" class="flex-1">
+            <i class="fa-solid fa-right-to-bracket mr-2"></i>
+            Save Credentials
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onclick={clearCredentials}
+            class="flex-1"
           >
-          and
-          <code class="px-1.5 py-0.5 bg-gray-100 rounded text-[#5a9d8a]"
-            >access_token</code
-          >
-        </li>
-        <li>Copy these values here</li>
-      </ol>
-    </div>
-  </div>
+            <i class="fa-solid fa-right-from-bracket mr-2"></i>
+            Clear Credentials
+          </Button>
+        </div>
+      </form>
+
+      <Separator />
+
+      <!-- Help Section -->
+      <Alert.Root>
+        <i class="fa-solid fa-circle-info"></i>
+        <Alert.Title>How to get your credentials</Alert.Title>
+        <Alert.Description>
+          <ol class="list-decimal list-inside space-y-1 mt-2 text-sm">
+            <li>Use NGA official Android app</li>
+            <li>Login to your account</li>
+            <li>
+              Use network monitoring tool (e.g., HTTP Canary, Charles Proxy)
+            </li>
+            <li>
+              Capture API requests to find <code class="bg-muted px-1 rounded"
+                >access_uid</code
+              >
+              and <code class="bg-muted px-1 rounded">access_token</code>
+            </li>
+            <li>Copy these values here</li>
+          </ol>
+        </Alert.Description>
+      </Alert.Root>
+    </Card.Content>
+  </Card.Root>
 </div>

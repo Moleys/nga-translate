@@ -3,7 +3,9 @@
     "allow": [
       "mcp__cometix-indexer__index_project",
       "mcp__cometix-indexer__codebase_search",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
