@@ -37,16 +37,16 @@ if ('serviceWorker' in navigator) {
 // Show update notification
 function showUpdateNotification() {
     const notification = document.createElement('div');
-    notification.className = 'fixed bottom-0 left-1/2 -translate-x-1/2 mb-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 shadow-lg';
+    notification.className = 'alert alert-info position-fixed bottom-0 start-50 translate-middle-x mb-3';
     notification.style.zIndex = '10000';
     notification.innerHTML = `
-        <div class="flex items-center justify-between gap-4">
+        <div class="d-flex align-items-center justify-content-between">
             <div>
                 <i class="fa-solid fa-arrow-rotate-right"></i>
                 <strong>Update Available</strong>
-                <p class="mb-0 text-sm">A new version is available. Refresh to update.</p>
+                <p class="mb-0 small">A new version is available. Refresh to update.</p>
             </div>
-            <button class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors" onclick="window.location.reload()">
+            <button class="btn btn-sm btn-success ms-3" onclick="window.location.reload()">
                 Refresh
             </button>
         </div>
@@ -76,7 +76,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 function showInstallPrompt() {
     const installButton = document.createElement('button');
-    installButton.className = 'fixed bottom-0 right-0 m-3 px-4 py-2 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-colors';
+    installButton.className = 'btn btn-success position-fixed bottom-0 end-0 m-3';
     installButton.style.zIndex = '10000';
     installButton.innerHTML = '<i class="fa-solid fa-download"></i> Install App';
     installButton.id = 'pwa-install-btn';
@@ -131,7 +131,7 @@ window.addEventListener('appinstalled', () => {
 
     // Show success message
     const toast = document.createElement('div');
-    toast.className = 'fixed top-0 left-1/2 -translate-x-1/2 mt-3 bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 shadow-lg';
+    toast.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
     toast.style.zIndex = '10000';
     toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> App installed successfully!';
 
@@ -169,7 +169,7 @@ function showConnectionStatus(status) {
 
     const toast = document.createElement('div');
     toast.id = 'connection-toast';
-    toast.className = `fixed top-0 left-1/2 -translate-x-1/2 mt-3 ${status === 'online' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'} border rounded-lg p-4 shadow-lg`;
+    toast.className = `alert alert-${status === 'online' ? 'success' : 'warning'} position-fixed top-0 start-50 translate-middle-x mt-3`;
     toast.style.zIndex = '10000';
 
     toast.innerHTML = status === 'online'

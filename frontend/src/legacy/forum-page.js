@@ -1,12 +1,13 @@
-// Forum Page - Display all forums categorized
-import forumList from './forum-list.js';
-
-const ForumPageApp = {
+// Forum Page - Display all forums with favorite functionality and premium Tailwind UI
+const ForumPage = {
     favorites: [],
 
     init() {
+        // Load favorites from localStorage
         this.loadFavorites();
-        this.loadForums();
+
+        // Render all forums from forum-list.js with translation
+        this.translateAndRender();
     },
 
     loadFavorites() {
@@ -18,183 +19,227 @@ const ForumPageApp = {
         localStorage.setItem('nga_forum_favorites', JSON.stringify(this.favorites));
     },
 
-    isFavorite(fid) {
-        return this.favorites.some(f => f.fid === fid);
+    isFavorited(fid) {
+        return this.favorites.some(b => b.fid === fid);
     },
 
     toggleFavorite(forum) {
-        const index = this.favorites.findIndex(f => f.fid === forum.fid);
+        const index = this.favorites.findIndex(b => b.fid === forum.fid);
+
         if (index >= 0) {
+            // Remove favorite
             this.favorites.splice(index, 1);
         } else {
-            this.favorites.push({
-                fid: forum.fid,
-                name: forum.name,
-                subject: forum.subject || '',
-                avatar: forum.avatar || ''
-            });
-        }
-        this.saveFavorites();
-        this.renderForums();
-    },
-
-    async loadForums() {
-        const container = document.getElementById('forum-categories');
-        if (!container) return;
-
-        container.innerHTML = `
-            <div class="rounded-lg border bg-card">
-                <div class="flex items-center justify-center py-16">
-                    <div class="text-center">
-                        <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent mb-4"></div>
-                        <p class="text-muted-foreground">Loading forums...</p>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        try {
-            // Transform local forum-list.js data to expected structure
-            const transformedData = {
-                __GROUPS: forumList.map(category => category.category),
-                __ROWS: forumList.map(category => category.forums)
-            };
-
-            this.forums = transformedData;
-            await this.translateAndRenderForums();
-        } catch (error) {
-            console.error('[Forums] Load error:', error);
-            container.innerHTML = `
-                <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-6">
-                    <div class="flex items-start gap-3">
-                        <i class="fa-solid fa-circle-exclamation text-destructive text-xl"></i>
-                        <div>
-                            <h5 class="font-semibold text-destructive mb-1">Error Loading Forums</h5>
-                            <p class="text-muted-foreground text-sm">${Utils.escapeHtml(error.message)}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-    },
-
-    async translateAndRenderForums() {
-        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
-            this.renderForums();
-            return;
-        }
-
-        // Translate category names, forum names and subjects
-        try {
-            const forums = this.forums;
-            let textsToTranslate = [];
-            let textMap = [];
-
-            // Translate category names
-            forums.__GROUPS.forEach((groupName, groupIdx) => {
-                textMap.push({ type: 'category', groupIdx, index: textsToTranslate.length });
-                textsToTranslate.push(groupName);
-            });
-
-            // Translate forum names and subjects
-            forums.__ROWS.forEach((row, rowIdx) => {
-                row.forEach((forum, colIdx) => {
-                    if (forum.name) {
-                        textMap.push({ type: 'name', rowIdx, colIdx, index: textsToTranslate.length });
-                        textsToTranslate.push(forum.name);
-                    }
-                    if (forum.subject) {
-                        textMap.push({ type: 'subject', rowIdx, colIdx, index: textsToTranslate.length });
-                        textsToTranslate.push(forum.subject);
-                    }
-                });
-            });
-
-            if (textsToTranslate.length > 0) {
-                const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
-
-                textMap.forEach(mapping => {
-                    const translatedText = translated[mapping.index]?.translations?.[0]?.text || textsToTranslate[mapping.index];
-                    const formattedText = TranslationUtil.formatTranslatedText(translatedText);
-
-                    if (mapping.type === 'category') {
-                        forums.__GROUPS[mapping.groupIdx] = formattedText;
-                    } else if (mapping.type === 'name') {
-                        forums.__ROWS[mapping.rowIdx][mapping.colIdx].translatedName = formattedText;
-                    } else if (mapping.type === 'subject') {
-                        forums.__ROWS[mapping.rowIdx][mapping.colIdx].translatedSubject = formattedText;
+            // Find original forum data from forumList (not translated)
+            let originalForum = null;
+            if (typeof forumList !== 'undefined') {
+                forumList.forEach(category => {
+                    const found = category.forums.find(f => f.fid === forum.fid);
+                    if (found) {
+                        originalForum = found;
                     }
                 });
             }
-        } catch (error) {
-            console.error('[Forums] Translation error:', error);
+
+            // Add favorite with ORIGINAL Chinese text
+            this.favorites.push({
+                fid: forum.fid,
+                name: originalForum ? originalForum.name : forum.name,
+                subject: originalForum ? originalForum.subject : forum.subject,
+                avatar: originalForum ? originalForum.avatar : forum.avatar
+            });
         }
 
-        this.renderForums();
+        this.saveFavorites();
+        this.translateAndRender(); // Re-render with translation
     },
 
-    renderForums() {
+    async translateAndRender() {
         const container = document.getElementById('forum-categories');
-        if (!container || !this.forums) return;
+        if (!container) return;
 
-        const forums = this.forums;
+        if (typeof forumList === 'undefined' || forumList.length === 0) {
+            container.innerHTML = `
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl text-amber-800">
+                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                    No forums available
+                </div>
+            `;
+            return;
+        }
+
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderForumList();
+            return;
+        }
+
+        // Clone forumList to avoid modifying the original
+        const translatedForumList = JSON.parse(JSON.stringify(forumList));
+
+        try {
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
+
+            translatedForumList.forEach((category, catIdx) => {
+                if (category.category) {
+                    textMap.push({ type: 'category', catIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(category.category);
+                }
+
+                category.forums.forEach((forum, forumIdx) => {
+                    if (forum.name) {
+                        textMap.push({ type: 'forum_name', catIdx, forumIdx, index: textsToTranslate.length });
+                        textsToTranslate.push(forum.name);
+                    }
+                    if (forum.subject) {
+                        // Preprocess BBCode - extract text segments
+                        const { textSegments, structure, emptyLines } = BBCodeTranslator.prepareBBCodeForTranslation(forum.subject);
+                        textMap.push({
+                            type: 'forum_subject',
+                            catIdx,
+                            forumIdx,
+                            startIndex: textsToTranslate.length,
+                            segmentCount: textSegments.length,
+                            structure: structure,
+                            emptyLines: emptyLines
+                        });
+                        // Add all text segments to translation queue
+                        textSegments.forEach(segment => {
+                            textsToTranslate.push(segment);
+                        });
+                    }
+                });
+            });
+
+            console.log(`[Translation] Translating ${textsToTranslate.length} forum texts...`);
+
+            // Translate all texts
+            const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+            if (translated && translated.length > 0) {
+                // Apply translations
+                textMap.forEach(mapping => {
+                    const result = translated[mapping.index];
+                    const translatedText = result?.translations?.[0]?.text || textsToTranslate[mapping.index];
+
+                    if (mapping.type === 'category') {
+                        translatedForumList[mapping.catIdx].category = translatedText;
+                    } else if (mapping.type === 'forum_name') {
+                        translatedForumList[mapping.catIdx].forums[mapping.forumIdx].name = translatedText;
+                    } else if (mapping.type === 'forum_subject') {
+                        // Reconstruct BBCode content from translated segments
+                        const translatedSegments = [];
+                        for (let i = 0; i < mapping.segmentCount; i++) {
+                            const result = translated[mapping.startIndex + i];
+                            let segmentText = result?.translations?.[0]?.text || textsToTranslate[mapping.startIndex + i];
+                            // Format: split by <br/>, trim, capitalize, join
+                            segmentText = TranslationUtil.formatTranslatedText(segmentText);
+                            translatedSegments.push(segmentText);
+                        }
+                        const restored = BBCodeTranslator.restoreBBCodeAfterTranslation(
+                            translatedSegments,
+                            mapping.structure,
+                            mapping.emptyLines
+                        );
+                        translatedForumList[mapping.catIdx].forums[mapping.forumIdx].subject = restored;
+                    }
+                });
+
+                console.log('[Translation] Forum list translation complete!');
+            }
+        } catch (error) {
+            console.error('[Translation] Error during forum translation:', error);
+        }
+
+        // Render with translated data
+        this.renderForumList(translatedForumList);
+    },
+
+    renderForumList(dataToRender) {
+        const container = document.getElementById('forum-categories');
+        if (!container) return;
+
+        // Use provided data or fall back to original forumList
+        const data = dataToRender || forumList;
+
+        if (typeof data === 'undefined' || data.length === 0) {
+            container.innerHTML = `
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl text-amber-800">
+                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                    No forums available
+                </div>
+            `;
+            return;
+        }
+
         let html = '';
+        let categoryIndex = 0;
 
-        forums.__GROUPS.forEach((groupName, groupIndex) => {
-            const forumsInGroup = forums.__ROWS[groupIndex] || [];
-            if (forumsInGroup.length === 0) return;
-
+        data.forEach(category => {
             html += `
-                <div class="mb-8 animate-fade-in" style="animation-delay: ${groupIndex * 100}ms">
-                    <div class="flex items-center gap-2 mb-4">
-                        <div class="h-8 w-1 bg-primary rounded-full"></div>
-                        <h2 class="text-lg font-semibold">${Utils.escapeHtml(groupName)}</h2>
-                        <span class="text-muted-foreground text-sm">(${forumsInGroup.length})</span>
+                <div class="mb-8" style="animation: fadeIn 0.4s ease-out ${categoryIndex * 100}ms both">
+                    <div class="bg-gradient-to-r from-[#5a9d8a] to-[#4a8d7a] rounded-t-2xl px-6 py-4 shadow-lg">
+                        <h4 class="text-white font-bold text-lg flex items-center gap-3 m-0">
+                            <i class="fa-solid fa-folder-open"></i>
+                            ${Utils.escapeHtml(category.category)}
+                        </h4>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div class="bg-white/80 backdrop-blur-sm rounded-b-2xl border border-t-0 border-gray-100/50 p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             `;
 
-            forumsInGroup.forEach((forum, index) => {
-                const isFav = this.isFavorite(forum.fid);
-                const displayName = forum.translatedName || forum.name;
-                const displaySubject = forum.translatedSubject || forum.subject || '';
+            category.forums.forEach((forum, forumIndex) => {
+                const isFavorited = this.isFavorited(forum.fid);
+                const favoriteClass = isFavorited
+                    ? 'text-amber-400 hover:text-amber-500'
+                    : 'text-gray-300 hover:text-amber-400';
+                const favoriteIcon = isFavorited ? 'fa-solid fa-star' : 'fa-regular fa-star';
 
                 html += `
-                    <div class="group flex items-start gap-3 p-3 rounded-lg border bg-card hover:shadow-md transition-all duration-200" 
-                         style="animation: fadeIn 0.3s ease-out ${index * 30}ms both">
-                        <img src="https://wsrv.nl/?url=${Utils.escapeHtml(forum.avatar)}" 
-                             alt="${Utils.escapeHtml(displayName)}"
-                             class="w-10 h-10 rounded-lg object-cover flex-shrink-0 border"
-                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect fill=%22%23e5e7eb%22 width=%2240%22 height=%2240%22/%3E%3C/svg%3E'">
+                    <div class="group flex items-center gap-4 p-4 rounded-xl bg-white/60 border border-gray-100 
+                                hover:bg-white hover:shadow-[0_0_20px_rgba(90,157,138,0.15)] 
+                                hover:border-[#5a9d8a]/20 transition-all duration-300"
+                         style="animation: fadeIn 0.3s ease-out ${forumIndex * 30}ms both">
+                        <img src="https://wsrv.nl/?url=${forum.avatar}" 
+                             alt="${Utils.escapeHtml(forum.name)}" 
+                             class="w-12 h-12 rounded-xl object-cover shadow-md ring-2 ring-gray-100 
+                                    group-hover:ring-[#5a9d8a]/30 transition-all duration-300 flex-shrink-0"
+                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23e8efed%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E'">
                         <div class="flex-1 min-w-0">
-                            <a href="/forum/${Utils.escapeHtml(forum.fid)}" 
-                               class="font-medium hover:text-primary transition-colors line-clamp-1">
-                                ${Utils.escapeHtml(displayName)}
-                            </a>
-                            <p class="text-xs text-muted-foreground line-clamp-1 mt-0.5">${Utils.escapeHtml(displaySubject)}</p>
+                            <h6 class="font-bold text-gray-800 group-hover:text-[#5a9d8a] transition-colors mb-0.5 truncate">
+                                <a href="/forum/${forum.fid}" class="hover:underline decoration-2 underline-offset-2">
+                                    ${Utils.escapeHtml(forum.name)}
+                                </a>
+                            </h6>
+                            <p class="text-xs text-gray-500 line-clamp-1 m-0">${Utils.escapeHtml(forum.subject)}</p>
                         </div>
-                        <button class="toggle-favorite-btn flex-shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent transition-colors ${isFav ? 'text-amber-500' : 'text-muted-foreground'}"
-                                data-fid="${Utils.escapeHtml(forum.fid)}"
+                        <button class="favorite-btn p-2 rounded-lg ${favoriteClass} transition-all duration-200 
+                                       hover:scale-110 flex-shrink-0"
+                                data-fid="${forum.fid}"
                                 data-name="${Utils.escapeHtml(forum.name)}"
-                                data-subject="${Utils.escapeHtml(forum.subject || '')}"
-                                data-avatar="${Utils.escapeHtml(forum.avatar || '')}"
-                                title="${isFav ? 'Remove from favorites' : 'Add to favorites'}">
-                            <i class="fa-${isFav ? 'solid' : 'regular'} fa-star"></i>
+                                data-subject="${Utils.escapeHtml(forum.subject)}"
+                                data-avatar="${forum.avatar}"
+                                title="${isFavorited ? 'Remove favorite' : 'Add favorite'}">
+                            <i class="${favoriteIcon} text-lg"></i>
                         </button>
                     </div>
                 `;
             });
 
             html += `
+                        </div>
                     </div>
                 </div>
             `;
+            categoryIndex++;
         });
 
         container.innerHTML = html;
 
-        // Bind favorite toggle events
-        container.querySelectorAll('.toggle-favorite-btn').forEach(btn => {
+        // Add event listeners for favorite buttons
+        container.querySelectorAll('.favorite-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const forum = {
@@ -209,13 +254,14 @@ const ForumPageApp = {
     }
 };
 
+// Initialize forum page
 document.addEventListener('DOMContentLoaded', () => {
-    const forumCategories = document.getElementById('forum-categories');
-    if (forumCategories) {
-        ForumPageApp.init();
+    const categoriesContainer = document.getElementById('forum-categories');
+    if (categoriesContainer) {
+        ForumPage.init();
     }
 });
 
-window.ForumPageApp = ForumPageApp;
+window.ForumPage = ForumPage;
 
-export default ForumPageApp;
+export default ForumPage;

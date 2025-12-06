@@ -447,7 +447,7 @@ const ThreadReader = {
         const currentPage = apiData.currentPage || 1;
 
         if (!posts || posts.length === 0) {
-            container.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">No posts found</div>';
+            container.innerHTML = '<div class="alert alert-warning">No posts found</div>';
             this.renderPagination();
             return;
         }
@@ -598,14 +598,11 @@ const ThreadReader = {
     setupGlobalModalHandlers() {
         // Save button handler for glossary modal
         document.addEventListener('click', async (e) => {
-            if (e.target.id === 'glossary-save-btn' || e.target.id === 'glossary-save-btn-trigger') {
+            if (e.target.id === 'glossary-save-btn') {
                 const middleSpan = document.getElementById('glossary-raw-text');
                 const raw = middleSpan?.textContent?.trim() || '';
                 const meaning = document.getElementById('glossary-meaning-input')?.value?.trim() || '';
-                if (!raw) {
-                    this.closeGlossaryModal();
-                    return;
-                }
+                if (!raw) return this.closeGlossaryModal();
                 this.saveToGlossary(raw, meaning);
                 this.closeGlossaryModal();
 
@@ -614,8 +611,25 @@ const ThreadReader = {
             }
         });
 
+        // Handle ESC key for modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Check which modal is open
+                const glossaryModal = document.getElementById('glossaryEditModal');
+                const ocrModal = document.getElementById('ocrModal');
+
+                if (glossaryModal && glossaryModal.classList.contains('show')) {
+                    this.closeGlossaryModal();
+                } else if (ocrModal && ocrModal.classList.contains('show')) {
+                    this.closeOcrModal();
+                }
+            }
+        });
+
         // Delegate click on any line to open edit modal (use line's own data-raw)
         document.addEventListener('click', (e) => {
+            // Don't intercept clicks inside modals
+            if (e.target.closest('.modal')) return;
             // If clicking on an image, let OCR handler handle it
             if (e.target && (e.target.tagName === 'IMG' || e.target.closest('img'))) return;
             const lineEl = e.target.closest('.comment-line');
@@ -626,6 +640,8 @@ const ThreadReader = {
 
         // Delegate click on images within post-content to open OCR modal
         document.addEventListener('click', async (e) => {
+            // Don't intercept clicks inside modals
+            if (e.target.closest('.modal')) return;
             const img = e.target.closest('img');
             if (!img) return;
             // Only handle images inside post content
@@ -1118,6 +1134,10 @@ const ThreadReader = {
         this._hideModal('glossaryEditModal');
     },
 
+    closeOcrModal() {
+        this._hideModal('ocrModal');
+    },
+
     getGlossaryMap() {
         try {
             const raw = localStorage.getItem('nga_glossary');
@@ -1261,12 +1281,19 @@ const ThreadReader = {
         }
     },
 
-    // Modal helpers using custom events for Svelte Dialog components
+    // Modal helpers - simplified, Bootstrap JS is always loaded
     _showModal(id) {
-        window.dispatchEvent(new CustomEvent('showModal', { detail: { modalId: id } }));
+        const el = document.getElementById(id);
+        if (!el) return;
+        const inst = window.bootstrap.Modal.getOrCreateInstance(el);
+        inst.show();
     },
+
     _hideModal(id) {
-        window.dispatchEvent(new CustomEvent('hideModal', { detail: { modalId: id } }));
+        const el = document.getElementById(id);
+        if (!el) return;
+        const inst = window.bootstrap.Modal.getOrCreateInstance(el);
+        inst.hide();
     },
 
     // Fix broken lines heuristically (merge short lines until punctuation)
@@ -1394,19 +1421,20 @@ const ThreadReader = {
 
         // Jump to page input
         paginationHtml += `
-            <div class="flex justify-center items-center mt-2 gap-2">
-                <span class="text-muted-foreground text-sm">Jump to:</span>
-                <form id="page-jump-form" class="flex gap-2">
+            <div class="d-flex justify-content-center align-items-center mt-2 gap-2">
+                <span class="text-muted small">Jump to:</span>
+                <form id="page-jump-form" class="d-flex gap-2">
                     <input type="number"
                            id="page-input"
-                           class="px-2 py-1 text-sm border border-input bg-background rounded-md w-20"
+                           class="form-control form-control-sm"
+                           style="width: 80px;"
                            min="1"
                            max="${this.totalPages}"
                            value="${this.currentPage}"
                            autocomplete="off">
-                    <button type="submit" class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors">Go</button>
+                    <button type="submit" class="btn btn-sm btn-success">Go</button>
                 </form>
-                <span class="text-muted-foreground text-sm">/ ${this.totalPages}</span>
+                <span class="text-muted small">/ ${this.totalPages}</span>
             </div>
         `;
 
@@ -1643,7 +1671,7 @@ const ThreadReader = {
             }
             // Fallback: show link
             const safeUrl = Utils.escapeHtml(cleanUrl);
-            return `<a href="${safeUrl}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1 text-sm border border-green-600 text-green-600 rounded hover:bg-green-50 transition-colors my-2"><i class="fa-solid fa-circle-play"></i> View Video</a>`;
+            return `<a href="${safeUrl}" target="_blank" class="btn btn-sm btn-outline-success my-2"><i class="fa-solid fa-circle-play"></i> View Video</a>`;
         });
 
         // Convert standalone URLs to links (but not URLs in HTML attributes)
@@ -1682,10 +1710,10 @@ const ThreadReader = {
     showError(message) {
         const container = document.getElementById('posts-list');
         container.innerHTML = `
-            <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4" role="alert">
-                <h5 class="font-bold mb-2">Error</h5>
+            <div class="alert alert-danger" role="alert">
+                <h5 class="alert-heading">Error</h5>
                 <p>${Utils.escapeHtml(message)}</p>
-                <button class="mt-2 px-3 py-1 text-sm border border-red-600 text-red-600 rounded hover:bg-red-50 transition-colors" onclick="ThreadReader.loadPosts()">Retry</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="ThreadReader.loadPosts()">Retry</button>
             </div>
         `;
     },
@@ -1803,13 +1831,7 @@ const ThreadReader = {
     showNotification(message, type = 'info') {
         // Simple toast notification
         const toast = document.createElement('div');
-        const colorClasses = {
-            'info': 'bg-blue-50 border-blue-200 text-blue-800',
-            'success': 'bg-green-50 border-green-200 text-green-800',
-            'warning': 'bg-yellow-50 border-yellow-200 text-yellow-800',
-            'danger': 'bg-red-50 border-red-200 text-red-800'
-        };
-        toast.className = `${colorClasses[type] || colorClasses['info']} border rounded-lg p-4 shadow-lg fixed top-0 left-1/2 -translate-x-1/2 mt-3`;
+        toast.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
         toast.style.zIndex = '9999';
         toast.textContent = message;
 
@@ -1821,10 +1843,23 @@ const ThreadReader = {
     }
 };
 
-// Initialize thread reader
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize thread reader - use a more robust detection
+function initThreadReader() {
     const postsContainer = document.getElementById('posts-list');
     if (postsContainer) {
+        ThreadReader.init();
+    } else {
+        // Retry after a short delay for Svelte to render
+        setTimeout(initThreadReader, 100);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initThreadReader);
+
+// Also try on load event as backup
+window.addEventListener('load', () => {
+    const postsContainer = document.getElementById('posts-list');
+    if (postsContainer && !ThreadReader.currentTid) {
         ThreadReader.init();
     }
 });

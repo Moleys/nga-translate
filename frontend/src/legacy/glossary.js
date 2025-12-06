@@ -1,4 +1,4 @@
-// Glossary Page - Manage translation glossary
+// Glossary Page - Premium Tailwind UI
 const GlossaryPage = {
   key: 'nga_glossary',
 
@@ -83,6 +83,7 @@ const GlossaryPage = {
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result || '');
+      // only keep lines with '='
       this.textarea.value = text.split(/\r?\n/).filter(l => l.includes('=')).join('\n');
       this.updateStats();
       this.showToast('File imported!', 'success');
@@ -99,6 +100,7 @@ const GlossaryPage = {
   },
 
   showToast(message, type = 'info') {
+    // Create toast container if not exists
     let toastContainer = document.getElementById('toast-container');
     if (!toastContainer) {
       toastContainer = document.createElement('div');
@@ -108,9 +110,9 @@ const GlossaryPage = {
     }
 
     const colors = {
-      success: 'bg-green-600',
-      error: 'bg-red-600',
-      info: 'bg-blue-600'
+      success: 'bg-emerald-500',
+      error: 'bg-red-500',
+      info: 'bg-sky-500'
     };
 
     const icons = {
@@ -120,19 +122,21 @@ const GlossaryPage = {
     };
 
     const toast = document.createElement('div');
-    toast.className = `${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 
-                           transform translate-x-full opacity-0 transition-all duration-300`;
+    toast.className = `${colors[type]} text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 
+                       transform translate-x-full opacity-0 transition-all duration-300`;
     toast.innerHTML = `
-            <i class="fa-solid ${icons[type]}"></i>
-            <span class="font-medium">${message}</span>
-        `;
+      <i class="fa-solid ${icons[type]}"></i>
+      <span class="font-medium">${message}</span>
+    `;
 
     toastContainer.appendChild(toast);
 
+    // Animate in
     setTimeout(() => {
       toast.classList.remove('translate-x-full', 'opacity-0');
     }, 10);
 
+    // Animate out and remove
     setTimeout(() => {
       toast.classList.add('translate-x-full', 'opacity-0');
       setTimeout(() => toast.remove(), 300);
@@ -155,6 +159,7 @@ const GlossaryPage = {
       e.target.value = '';
     });
 
+    // Update stats on input
     this.textarea?.addEventListener('input', () => this.updateStats());
   }
 };

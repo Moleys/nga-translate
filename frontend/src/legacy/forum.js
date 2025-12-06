@@ -1,317 +1,443 @@
-// Forum View - Display threads in a forum
-import forumList from './forum-list.js';
-
-const ForumViewApp = {
-    fid: null,
+// Forum App - Display forum threads with premium Tailwind UI
+const ForumApp = {
     currentPage: 1,
+    currentFid: null,
     currentAct: 'list',
     loading: false,
-    hasMore: true,
+    hasMorePages: true,
     observer: null,
-    attachPrefix: '',
 
     init() {
-        const container = document.getElementById('forum-threads');
-        if (!container) return;
-
-        this.fid = container.dataset.fid;
-        if (!this.fid) return;
-
-        this.loadForumNameFromList();
-        this.loadThreads();
-        this.setupFilterButtons();
-        this.setupInfiniteScroll();
+        const forumPage = document.getElementById('forum-threads');
+        if (forumPage) {
+            this.currentFid = forumPage.dataset.fid;
+            this.loadThreads();
+            this.attachFilterListeners();
+            this.setupInfiniteScroll();
+        }
     },
 
-    async loadForumNameFromList() {
-        const nameElem = document.getElementById('forum-name');
-        if (!nameElem) return;
-
-        // Find forum in local forum-list.js data
-        let forumName = null;
-        for (const category of forumList) {
-            const forum = category.forums.find(f => f.fid === this.fid);
-            if (forum) {
-                forumName = forum.name;
-                break;
-            }
-        }
-
-        if (!forumName) {
-            nameElem.innerHTML = 'Forum';
-            return;
-        }
-
-        // Translate forum name
-        let displayName = forumName;
-        if (typeof TranslationUtil !== 'undefined' && TranslationUtil.enabled) {
-            try {
-                const translated = await TranslationUtil.translateVietphrase([forumName]);
-                if (translated && translated[0]?.translations?.[0]?.text) {
-                    displayName = TranslationUtil.formatTranslatedText(translated[0].translations[0].text);
-                }
-            } catch (e) {
-                console.error('[Forum] Forum name translation error:', e);
-            }
-        }
-
-        nameElem.innerHTML = Utils.escapeHtml(displayName);
-    },
-
-
-    setupFilterButtons() {
-        document.querySelectorAll('.filter-btn').forEach(btn => {
+    attachFilterListeners() {
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                const act = btn.dataset.act;
-                if (act === this.currentAct) return;
-
-                // Update active button
-                document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('active');
-                    if (b.dataset.act === act) {
-                        b.classList.add('active');
-                    }
-                });
-
-                this.currentAct = act;
-                this.currentPage = 1;
-                this.hasMore = true;
-                document.getElementById('threads-list').innerHTML = '';
-                document.getElementById('scroll-end').style.display = 'none';
-                this.loadThreads();
+                const act = e.target.dataset.act;
+                this.changeFilter(act);
             });
         });
     },
 
+    changeFilter(act) {
+        this.currentAct = act;
+        this.currentPage = 1;
+        this.hasMorePages = true;
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-act="${act}"]`).classList.add('active');
+
+        // Reset UI state
+        document.getElementById('threads-list').innerHTML = '';
+        document.getElementById('scroll-end').style.display = 'none';
+        document.getElementById('scroll-sentinel').style.display = 'block';
+
+        this.loadThreads();
+    },
+
     setupInfiniteScroll() {
         const sentinel = document.getElementById('scroll-sentinel');
-        if (!sentinel) return;
 
         this.observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting && this.hasMore && !this.loading) {
+                if (entry.isIntersecting && this.hasMorePages && !this.loading) {
                     this.currentPage++;
-                    this.loadThreads(true);
+                    this.loadThreads(true); // true = append mode
                 }
             });
-        }, { rootMargin: '100px' });
+        }, {
+            rootMargin: '100px' // Trigger 100px before reaching sentinel
+        });
 
         this.observer.observe(sentinel);
     },
 
     async loadThreads(append = false) {
         if (this.loading) return;
+
         this.loading = true;
 
-        const container = document.getElementById('threads-list');
-        const sentinel = document.getElementById('scroll-sentinel');
-        const sentinelText = document.getElementById('sentinel-text');
-
         if (!append) {
-            container.innerHTML = `
-                <div class="rounded-lg border bg-card">
-                    <div class="flex items-center justify-center py-16">
-                        <div class="text-center">
-                            <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent mb-4"></div>
-                            <p class="text-muted-foreground">Loading threads...</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+            this.showLoading();
         } else {
-            sentinel.querySelector('.spinner-border')?.style && (sentinel.querySelector('.spinner-border').style.display = 'inline-block');
-            sentinelText && (sentinelText.style.display = 'block');
+            // Show loading spinner inside sentinel
+            const sentinel = document.getElementById('scroll-sentinel');
+            sentinel.querySelector('.spinner-border').style.display = 'inline-block';
+            sentinel.querySelector('#sentinel-text').style.display = 'block';
         }
 
         try {
-            const url = `/api/forum/${this.fid}/threads?page=${this.currentPage}&act=${this.currentAct}`;
+            const url = `/api/forum/${this.currentFid}/threads?page=${this.currentPage}&act=${this.currentAct}`;
             const response = await fetch(url);
             const data = await response.json();
 
             if (data.error) {
-                throw new Error(data.error);
+                this.showError(data.error);
+            } else if (data.code !== 0) {
+                this.showError(data.msg || 'API Error');
+            } else {
+                // Translate API data before rendering
+                await this.translateAndRender(data, append);
             }
-
-            this.attachPrefix = data.attachPrefix || '';
-            await this.translateAndRenderThreads(data, append);
-
         } catch (error) {
-            console.error('[Forum] Load threads error:', error);
-            if (!append) {
-                container.innerHTML = `
-                    <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-6">
-                        <div class="flex items-start gap-3">
-                            <i class="fa-solid fa-circle-exclamation text-destructive text-xl"></i>
-                            <div>
-                                <h5 class="font-semibold text-destructive mb-1">Error Loading Threads</h5>
-                                <p class="text-muted-foreground text-sm">${Utils.escapeHtml(error.message)}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
+            this.showError(error.message);
         } finally {
             this.loading = false;
-            sentinel.querySelector('.spinner-border')?.style && (sentinel.querySelector('.spinner-border').style.display = 'none');
-            sentinelText && (sentinelText.style.display = 'none');
-        }
-    },
-
-    async translateAndRenderThreads(data, append) {
-        let threads = [];
-
-        // Parse API response structure from old code
-        if (data.result && data.result.data) {
-            threads = data.result.data;
-        } else if (Array.isArray(data.result)) {
-            threads = data.result;
-        }
-
-        const totalPages = data.totalPage || data.result?.totalPage || 1;
-        const currentPage = data.currentPage || data.result?.currentPage || 1;
-        this.attachPrefix = data.attachPrefix || data.result?.attachPrefix || '';
-
-        this.hasMore = currentPage < totalPages;
-
-        if (!this.hasMore) {
-            document.getElementById('scroll-sentinel').style.display = 'none';
-            document.getElementById('scroll-end').style.display = 'block';
-        }
-
-        if (typeof TranslationUtil !== 'undefined' && TranslationUtil.enabled && threads.length > 0) {
-            try {
-                let textsToTranslate = [];
-                let textMap = [];
-
-                threads.forEach((thread, idx) => {
-                    if (thread.subject) {
-                        textMap.push({ type: 'subject', idx, index: textsToTranslate.length });
-                        textsToTranslate.push(thread.subject);
-                    }
-                    if (thread.author) {
-                        textMap.push({ type: 'author', idx, index: textsToTranslate.length });
-                        textsToTranslate.push(thread.author);
-                    }
-                    if (thread.lastposter) {
-                        textMap.push({ type: 'lastposter', idx, index: textsToTranslate.length });
-                        textsToTranslate.push(thread.lastposter);
-                    }
-                });
-
-                if (textsToTranslate.length > 0) {
-                    const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
-
-                    textMap.forEach(mapping => {
-                        const translatedText = translated[mapping.index]?.translations?.[0]?.text || textsToTranslate[mapping.index];
-                        threads[mapping.idx][mapping.type] = TranslationUtil.formatTranslatedText(translatedText);
-                    });
-                }
-            } catch (error) {
-                console.error('[Forum] Translation error:', error);
+            // Hide loading spinner
+            const sentinel = document.getElementById('scroll-sentinel');
+            if (sentinel) {
+                sentinel.querySelector('.spinner-border').style.display = 'none';
+                sentinel.querySelector('#sentinel-text').style.display = 'none';
             }
         }
-
-        this.renderThreads(threads, append);
     },
 
-    renderThreads(threads, append = false) {
-        const container = document.getElementById('threads-list');
-
-        if (threads.length === 0 && !append) {
-            container.innerHTML = `
-                <div class="rounded-lg border bg-muted/50 p-8 text-center">
-                    <i class="fa-solid fa-inbox text-4xl text-muted-foreground mb-3"></i>
-                    <p class="text-muted-foreground">No threads found</p>
-                </div>
-            `;
+    async translateAndRender(apiData, append = false) {
+        // Check if translation is enabled
+        if (typeof TranslationUtil === 'undefined' || !TranslationUtil.enabled) {
+            this.renderThreads(apiData, append);
             return;
         }
 
-        let html = '<div class="space-y-3">';
+        try {
+            // Collect all texts to translate
+            let textsToTranslate = [];
+            let textMap = [];
 
-        threads.forEach((thread, index) => {
+            // Forum name (only on first load)
+            if (!append && apiData.forumname) {
+                textMap.push({ type: 'forumname', index: textsToTranslate.length });
+                textsToTranslate.push(apiData.forumname);
+            }
+
+            // Subforums (only on first load)
+            if (!append && apiData.result && apiData.result.subForum) {
+                const subforumArray = Object.values(apiData.result.subForum || {});
+                subforumArray.forEach((subforum, idx) => {
+                    const name = subforum['1'] || subforum.name;
+                    const description = subforum['2'] || subforum.info || '';
+
+                    if (name) {
+                        textMap.push({ type: 'subforum_name', subforumIdx: idx, index: textsToTranslate.length });
+                        textsToTranslate.push(name);
+                    }
+                    if (description) {
+                        textMap.push({ type: 'subforum_desc', subforumIdx: idx, index: textsToTranslate.length });
+                        textsToTranslate.push(description);
+                    }
+                });
+            }
+
+            // Extract threads array
+            let threads = [];
+            if (apiData.result && apiData.result.data) {
+                threads = apiData.result.data;
+            } else if (Array.isArray(apiData.result)) {
+                threads = apiData.result;
+            }
+
+            // Thread titles
+            threads.forEach((thread, threadIdx) => {
+                if (thread.subject) {
+                    textMap.push({ type: 'thread_title', threadIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.subject);
+                }
+                if (thread.author) {
+                    textMap.push({ type: 'thread_author', threadIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.author);
+                }
+                if (thread.lastposter) {
+                    textMap.push({ type: 'thread_lastposter', threadIdx, index: textsToTranslate.length });
+                    textsToTranslate.push(thread.lastposter);
+                }
+            });
+
+            console.log(`[Translation] Translating ${textsToTranslate.length} forum texts...`);
+
+            // Translate all texts
+            const translated = await TranslationUtil.translateVietphrase(textsToTranslate);
+
+            if (translated && translated.length > 0) {
+                // Apply translations back to apiData
+                textMap.forEach(mapping => {
+                    const result = translated[mapping.index];
+                    let translatedText = result?.translations?.[0]?.text || textsToTranslate[mapping.index];
+
+                    // Format translated text
+                    translatedText = TranslationUtil.formatTranslatedText(translatedText);
+
+                    if (mapping.type === 'forumname') {
+                        apiData.forumname = translatedText;
+                    } else if (mapping.type === 'subforum_name') {
+                        const subforumArray = Object.values(apiData.result.subForum);
+                        const subforum = subforumArray[mapping.subforumIdx];
+                        if (subforum) {
+                            // Update both numeric and named properties
+                            subforum['1'] = translatedText;
+                            if (subforum.name !== undefined) subforum.name = translatedText;
+                        }
+                    } else if (mapping.type === 'subforum_desc') {
+                        const subforumArray = Object.values(apiData.result.subForum);
+                        const subforum = subforumArray[mapping.subforumIdx];
+                        if (subforum) {
+                            subforum['2'] = translatedText;
+                            if (subforum.info !== undefined) subforum.info = translatedText;
+                        }
+                    } else if (mapping.type === 'thread_title') {
+                        threads[mapping.threadIdx].subject = translatedText;
+                    } else if (mapping.type === 'thread_author') {
+                        threads[mapping.threadIdx].author = translatedText;
+                    } else if (mapping.type === 'thread_lastposter') {
+                        threads[mapping.threadIdx].lastposter = translatedText;
+                    }
+                });
+
+                console.log('[Translation] Forum translation complete!');
+            }
+        } catch (error) {
+            console.error('[Translation] Error during forum translation:', error);
+        }
+
+        // Update document title with translated forum name
+        if (!append && apiData.forumname) {
+            document.title = `${apiData.forumname} - NGA Forums`;
+        }
+
+        // Render with translated data
+        this.renderThreads(apiData, append);
+    },
+
+    renderThreads(apiData, append = false) {
+        const container = document.getElementById('threads-list');
+
+        let threads = [];
+        let totalPages = 1;
+        let currentPage = 1;
+        let attachPrefix = apiData.attachPrefix || '';
+
+        // Extract and display forum name (only on first load)
+        if (!append && apiData.forumname) {
+            document.getElementById('forum-name').textContent = apiData.forumname;
+            document.title = `${apiData.forumname} - NGA Forums`;
+        }
+
+        // Extract and display subforums (only on first load)
+        if (!append && apiData.result && apiData.result.subForum) {
+            this.renderSubforums(apiData.result.subForum);
+        }
+
+        // Parse API response - Check top-level first!
+        if (apiData.result && apiData.result.data) {
+            // Object format: result.data = threads array
+            threads = apiData.result.data;
+            attachPrefix = apiData.result.attachPrefix || attachPrefix;
+        } else if (Array.isArray(apiData.result)) {
+            // Array format: result = threads array
+            threads = apiData.result;
+        }
+
+        // Extract pagination from TOP LEVEL (not from result)
+        totalPages = apiData.totalPage || apiData.result?.totalPage || 1;
+        currentPage = apiData.currentPage || apiData.result?.currentPage || 1;
+
+        if (!threads || threads.length === 0) {
+            if (!append) {
+                container.innerHTML = `
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl text-amber-800">
+                        <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                        No threads found
+                    </div>
+                `;
+            }
+            this.hasMorePages = false;
+            document.getElementById('scroll-end').style.display = 'block';
+            return;
+        }
+
+        // Check if we have more pages
+        this.hasMorePages = currentPage < totalPages;
+
+        if (!this.hasMorePages) {
+            document.getElementById('scroll-sentinel').style.display = 'none';
+            document.getElementById('scroll-end').style.display = 'block';
+        } else {
+            document.getElementById('scroll-sentinel').style.display = 'block';
+            document.getElementById('scroll-end').style.display = 'none';
+        }
+
+        const threadItems = threads.map((thread, index) => {
             const title = thread.subject || 'Untitled';
             const author = thread.author || 'Unknown';
+            const lastPoster = thread.lastposter || author;
             const replies = thread.replies || 0;
             const tid = thread.tid;
-            const postDate = thread.postdate ? new Date(thread.postdate * 1000).toLocaleDateString() : '';
-            const lastPostDate = thread.lastpost ? new Date(thread.lastpost * 1000).toLocaleDateString() : '';
-            const lastPoster = thread.lastposter || '';
+            const postDate = thread.postdate ? new Date(thread.postdate * 1000).toLocaleString('vi-VN') : '';
+            const lastPostDate = thread.lastpost ? new Date(thread.lastpost * 1000).toLocaleString('vi-VN') : '';
 
             const hasAttachment = thread.attachs && thread.attachs.length > 0;
-            const thumbnailUrl = hasAttachment ? this.attachPrefix + thread.attachs[0].attachurl : '';
+            const thumbnailUrl = hasAttachment ? attachPrefix + thread.attachs[0].attachurl : '';
 
-            const isTopped = thread.topicmisc && thread.topicmisc.includes('topped');
+            // Get title styling from API
             const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
+            const titleClass = titleStyle ? '' : 'text-gray-800';
 
-            html += `
-                <div class="group rounded-lg border bg-card p-4 hover:shadow-md transition-all duration-200 animate-fade-in" 
-                     style="animation-delay: ${index * 30}ms">
+            return `
+                <div class="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/50 
+                            shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_0_20px_rgba(90,157,138,0.3)] 
+                            transition-all duration-300 ease-out hover:-translate-y-1 p-5 mb-4"
+                     style="animation: fadeIn 0.3s ease-out ${index * 30}ms both">
                     <div class="flex gap-4">
                         ${hasAttachment ? `
                         <div class="flex-shrink-0">
-                            <img src="https://wsrv.nl/?url=${thumbnailUrl}&w=80&h=80&fit=cover&a=attention" 
+                            <img src="https://wsrv.nl/?url=${thumbnailUrl}&w=100&h=100&fit=cover&a=attention" 
                                  alt="Thumbnail" 
-                                 class="w-20 h-20 object-cover rounded-lg border" 
+                                 class="w-24 h-24 md:w-28 md:h-28 object-cover rounded-xl shadow-md ring-1 ring-gray-100" 
                                  loading="lazy">
                         </div>
                         ` : ''}
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-start gap-2 mb-2">
-                                ${isTopped ? '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800"><i class="fa-solid fa-thumbtack mr-1"></i>Topped</span>' : ''}
-                                <a href="/thread/${tid}" 
-                                   class="font-medium hover:text-primary transition-colors line-clamp-2 group-hover:underline" ${titleStyle}>
-                                    ${hasAttachment ? '<i class="fa-solid fa-image text-muted-foreground mr-1 text-sm"></i>' : ''}${Utils.escapeHtml(title)}
+                            <h5 class="text-lg font-semibold ${titleClass} group-hover:text-[#5a9d8a] transition-colors mb-3" ${titleStyle}>
+                                <a href="/thread/${tid}" class="hover:underline decoration-2 underline-offset-2">
+                                    ${hasAttachment ? '<i class="fa-solid fa-image text-gray-400 mr-2 text-sm"></i>' : ''}${Utils.escapeHtml(title)}
                                 </a>
+                            </h5>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-500 mb-3">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-user-circle text-gray-400"></i>
+                                        <span class="font-medium text-gray-600">Author:</span>
+                                        ${Utils.escapeHtml(author)}
+                                    </div>
+                                    ${postDate ? `
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-calendar-days text-gray-400"></i>
+                                        <span class="font-medium text-gray-600">Posted:</span>
+                                        ${postDate}
+                                    </div>` : ''}
+                                </div>
+                                <div class="space-y-1 md:text-right">
+                                    ${lastPostDate ? `
+                                    <div class="flex items-center gap-2 md:justify-end">
+                                        <i class="fa-solid fa-clock-rotate-left text-gray-400"></i>
+                                        <span class="font-medium text-gray-600">Last:</span>
+                                        ${lastPostDate}
+                                    </div>` : ''}
+                                    <div class="flex items-center gap-2 md:justify-end">
+                                        <i class="fa-solid fa-user text-gray-400"></i>
+                                        ${Utils.escapeHtml(lastPoster)}
+                                    </div>
+                                </div>
                             </div>
-                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                                <span class="inline-flex items-center gap-1">
-                                    <i class="fa-solid fa-user text-xs"></i>
-                                    ${Utils.escapeHtml(author)}
-                                </span>
-                                ${postDate ? `
-                                <span class="inline-flex items-center gap-1">
-                                    <i class="fa-solid fa-calendar text-xs"></i>
-                                    ${postDate}
-                                </span>` : ''}
-                                ${lastPoster ? `
-                                <span class="inline-flex items-center gap-1">
-                                    <i class="fa-solid fa-reply text-xs"></i>
-                                    ${Utils.escapeHtml(lastPoster)} ${lastPostDate ? `(${lastPostDate})` : ''}
-                                </span>` : ''}
-                            </div>
-                            <div class="mt-2">
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full 
+                                             bg-gradient-to-r from-emerald-500 to-[#5a9d8a] text-white text-xs font-semibold shadow-sm">
                                     <i class="fa-solid fa-comment-dots"></i>
-                                    ${replies}
+                                    ${replies} ${replies === 1 ? 'reply' : 'replies'}
                                 </span>
+                                ${hasAttachment ? `
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full 
+                                             bg-gray-100 text-gray-600 text-xs font-semibold">
+                                    <i class="fa-solid fa-paperclip"></i>
+                                    ${thread.attachs.length}
+                                </span>` : ''}
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-        });
-
-        html += '</div>';
+        }).join('');
 
         if (append) {
-            // Strip outer wrapper tags for appending (remove first and last occurrences)
-            const stripped = html.replace('<div class="space-y-3">', '').replace(/<\/div>$/, '');
-            container.querySelector('.space-y-3')?.insertAdjacentHTML('beforeend', stripped);
+            container.insertAdjacentHTML('beforeend', threadItems);
         } else {
-            container.innerHTML = html;
+            container.innerHTML = threadItems;
+        }
+    },
+
+    showLoading() {
+        const container = document.getElementById('threads-list');
+        container.innerHTML = `
+            <div class="text-center py-16">
+                <div class="inline-block w-12 h-12 border-4 border-gray-200 border-t-[#5a9d8a] rounded-full animate-spin mb-4"></div>
+                <p class="text-gray-500">Loading threads...</p>
+            </div>
+        `;
+    },
+
+    showError(message) {
+        const container = document.getElementById('threads-list');
+        container.innerHTML = `
+            <div class="bg-red-50 border-l-4 border-red-400 p-6 rounded-xl">
+                <h5 class="text-red-800 font-bold mb-2">
+                    <i class="fa-solid fa-circle-exclamation mr-2"></i>Error
+                </h5>
+                <p class="text-red-700 mb-4">${Utils.escapeHtml(message)}</p>
+                <button class="px-4 py-2 rounded-lg bg-red-100 text-red-700 font-medium 
+                               hover:bg-red-200 transition-colors" onclick="ForumApp.loadThreads()">
+                    <i class="fa-solid fa-rotate-right mr-2"></i>Retry
+                </button>
+            </div>
+        `;
+    },
+
+    renderSubforums(subForums) {
+        const container = document.getElementById('subforum-container');
+        const listContainer = document.getElementById('subforum-list');
+
+        // subForum is an object where each key is a subforum entry
+        // Each entry: {"0": fid, "1": name, "2": description, "id": fid, "name": name, ...}
+        const subforumArray = Object.values(subForums || {});
+
+        if (subforumArray.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const subforumItems = subforumArray.map(subforum => {
+            // Extract using both numeric indices and named properties as fallback
+            const fid = subforum['0'] || subforum.id;
+            const name = subforum['1'] || subforum.name || 'Unnamed Forum';
+            const description = subforum['2'] || subforum.info || '';
+
+            if (!fid) return ''; // Skip invalid entries
+
+            return `
+                <a href="/forum/${fid}" 
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl 
+                          bg-white/60 border border-[#5a9d8a]/20 text-[#5a9d8a] text-sm font-medium
+                          hover:bg-[#5a9d8a] hover:text-white hover:border-[#5a9d8a]
+                          shadow-sm hover:shadow-md transition-all duration-200 no-underline"
+                   title="${Utils.escapeHtml(description)}">
+                    <i class="fa-solid fa-folder"></i>
+                    ${Utils.escapeHtml(name)}
+                </a>
+            `;
+        }).filter(item => item).join(''); // Remove empty strings
+
+        if (subforumItems) {
+            listContainer.innerHTML = subforumItems;
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
         }
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    const forumThreads = document.getElementById('forum-threads');
-    if (forumThreads) {
-        ForumViewApp.init();
-    }
+    ForumApp.init();
 });
 
-window.ForumViewApp = ForumViewApp;
+window.ForumApp = ForumApp;
 
-export default ForumViewApp;
+export default ForumApp;
