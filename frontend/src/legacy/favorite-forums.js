@@ -137,51 +137,46 @@ const FavoritesPage = {
         container.style.display = 'block';
         emptyState.style.display = 'none';
 
-        let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+        let html = '<div class="row g-3">';
 
         data.forEach((forum, index) => {
             const isFirst = index === 0;
             const isLast = index === data.length - 1;
 
             html += `
-                <div class="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/50 
-                            shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_0_20px_rgba(90,157,138,0.3)] 
-                            transition-all duration-300 ease-out hover:-translate-y-1 p-5"
-                     style="animation: fadeIn 0.3s ease-out ${index * 50}ms both">
-                    <div class="flex items-start gap-4">
-                        <img src="https://wsrv.nl/?url=${Utils.escapeHtml(forum.avatar)}"
-                             alt="${Utils.escapeHtml(forum.name)}"
-                             class="w-14 h-14 rounded-xl object-cover shadow-md ring-2 ring-gray-100 
-                                    group-hover:ring-[#5a9d8a]/30 transition-all duration-300 flex-shrink-0"
-                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2256%22 height=%2256%22%3E%3Crect fill=%22%23e8efed%22 width=%2256%22 height=%2256%22/%3E%3C/svg%3E'">
-                        <div class="flex-1 min-w-0">
-                            <h6 class="font-bold text-gray-800 group-hover:text-[#5a9d8a] transition-colors mb-1 truncate">
-                                <a href="/forum/${Utils.escapeHtml(forum.fid)}" class="hover:underline decoration-2 underline-offset-2">
-                                    ${Utils.escapeHtml(forum.name)}
-                                </a>
-                            </h6>
-                            <p class="text-sm text-gray-500 line-clamp-2 mb-3">${Utils.escapeHtml(forum.subject)}</p>
-                            <div class="flex items-center gap-1">
-                                <button class="move-up-btn p-2 rounded-lg text-gray-400 hover:text-[#5a9d8a] 
-                                               hover:bg-[#e8efed] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                                        data-index="${index}"
-                                        ${isFirst ? 'disabled' : ''}
-                                        title="Move up">
-                                    <i class="fa-solid fa-arrow-up text-sm"></i>
-                                </button>
-                                <button class="move-down-btn p-2 rounded-lg text-gray-400 hover:text-[#5a9d8a] 
-                                               hover:bg-[#e8efed] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                                        data-index="${index}"
-                                        ${isLast ? 'disabled' : ''}
-                                        title="Move down">
-                                    <i class="fa-solid fa-arrow-down text-sm"></i>
-                                </button>
-                                <button class="delete-favorite-btn p-2 rounded-lg text-gray-400 hover:text-red-500 
-                                               hover:bg-red-50 transition-all duration-200 ml-auto"
-                                        data-index="${index}"
-                                        title="Remove favorite">
-                                    <i class="fa-solid fa-trash text-sm"></i>
-                                </button>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm animate-fade-in">
+                        <div class="card-body d-flex gap-3">
+                            <img src="https://wsrv.nl/?url=${Utils.escapeHtml(forum.avatar)}"
+                                 alt="${Utils.escapeHtml(forum.name)}"
+                                 class="rounded" style="width: 56px; height: 56px; object-fit: cover;"
+                                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2256%22 height=%2256%22%3E%3Crect fill=%22%23e8efed%22 width=%2256%22 height=%2256%22/%3E%3C/svg%3E'">
+                            <div class="flex-fill">
+                                <h6 class="fw-bold mb-1 text-truncate">
+                                    <a href="/forum/${Utils.escapeHtml(forum.fid)}" class="text-decoration-none text-dark">
+                                        ${Utils.escapeHtml(forum.name)}
+                                    </a>
+                                </h6>
+                                <p class="small text-muted mb-2 line-clamp-2">${Utils.escapeHtml(forum.subject)}</p>
+                                <div class="d-flex gap-1">
+                                    <button class="move-up-btn btn btn-sm btn-outline-secondary"
+                                            data-index="${index}"
+                                            ${isFirst ? 'disabled' : ''}
+                                            title="Move up">
+                                        <i class="fa-solid fa-arrow-up"></i>
+                                    </button>
+                                    <button class="move-down-btn btn btn-sm btn-outline-secondary"
+                                            data-index="${index}"
+                                            ${isLast ? 'disabled' : ''}
+                                            title="Move down">
+                                        <i class="fa-solid fa-arrow-down"></i>
+                                    </button>
+                                    <button class="delete-favorite-btn btn btn-sm btn-outline-danger ms-auto"
+                                            data-index="${index}"
+                                            title="Remove favorite">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -294,45 +289,44 @@ const FavoritesPage = {
 
         if (data.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-12 text-gray-400">
-                    <i class="fa-solid fa-clock-rotate-left text-4xl mb-3 block"></i>
-                    <p class="text-gray-500">No thread history yet</p>
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-clock-rotate-left fs-1 mb-3 d-block"></i>
+                    <p>No thread history yet</p>
                 </div>
             `;
             return;
         }
 
-        let html = '<div class="space-y-2">';
+        let html = '<div class="d-flex flex-column gap-2">';
 
         data.slice(0, 10).forEach((thread, index) => {
             const timeAgo = this.getTimeAgo(thread.timestamp);
 
             // Get title styling from API
             const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
-            const titleClass = titleStyle ? '' : 'text-gray-700';
+            const titleClass = titleStyle ? '' : 'text-dark';
 
             html += `
-                <a href="/thread/${Utils.escapeHtml(thread.tid)}" 
-                   class="group flex items-center justify-between gap-4 p-3 rounded-xl 
-                          bg-white/60 hover:bg-white border border-transparent hover:border-gray-100
-                          hover:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] transition-all duration-200 no-underline"
-                   style="animation: fadeIn 0.2s ease-out ${index * 30}ms both">
-                    <div class="flex-1 min-w-0">
-                        <h6 class="text-sm font-medium ${titleClass} group-hover:text-[#5a9d8a] truncate transition-colors" ${titleStyle}>
-                            ${Utils.escapeHtml(thread.subject)}
-                        </h6>
-                        <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                            <span class="inline-flex items-center gap-1">
-                                <i class="fa-solid fa-user"></i> ${Utils.escapeHtml(thread.author)}
-                            </span>
-                            ${thread.forumName ? `
-                            <span class="text-gray-300">•</span>
-                            <span class="inline-flex items-center gap-1 text-[#5a9d8a]">
-                                <i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(thread.forumName)}
-                            </span>` : ''}
+                <a href="/thread/${Utils.escapeHtml(thread.tid)}"
+                   class="card card-body p-3 text-decoration-none animate-fade-in">
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div class="flex-fill text-truncate">
+                            <h6 class="small fw-medium ${titleClass} mb-1 text-truncate" ${titleStyle}>
+                                ${Utils.escapeHtml(thread.subject)}
+                            </h6>
+                            <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.75rem;">
+                                <span>
+                                    <i class="fa-solid fa-user"></i> ${Utils.escapeHtml(thread.author)}
+                                </span>
+                                ${thread.forumName ? `
+                                <span>•</span>
+                                <span class="text-success">
+                                    <i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(thread.forumName)}
+                                </span>` : ''}
+                            </div>
                         </div>
+                        <small class="text-muted text-nowrap">${timeAgo}</small>
                     </div>
-                    <span class="text-xs text-gray-400 flex-shrink-0">${timeAgo}</span>
                 </a>
             `;
         });

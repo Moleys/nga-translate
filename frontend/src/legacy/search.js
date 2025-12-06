@@ -1,4 +1,3 @@
-// Search App - Premium Tailwind UI for search results
 const SearchApp = {
     keyword: '',
     threadPage: 1,
@@ -16,18 +15,8 @@ const SearchApp = {
         this.keyword = urlParams.get('q') || '';
 
         if (!this.keyword) {
-            document.getElementById('thread-results').innerHTML = `
-                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl text-amber-800">
-                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
-                    Please enter a search keyword
-                </div>
-            `;
-            document.getElementById('forum-results').innerHTML = `
-                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl text-amber-800">
-                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
-                    Please enter a search keyword
-                </div>
-            `;
+            document.getElementById('thread-results').innerHTML = '<div class="alert alert-warning">Please enter a search keyword</div>';
+            document.getElementById('forum-results').innerHTML = '<div class="alert alert-warning">Please enter a search keyword</div>';
             return;
         }
 
@@ -53,16 +42,30 @@ const SearchApp = {
     },
 
     extractNgaThreadId(keyword) {
-        // Match NGA thread URLs with tid parameter at any position
+        // Match NGA thread URLs with tid parameter at any position:
+        // - https://ngabbs.com/read.php?tid=45452628&rand=681
+        // - https://nga.178.com/read.php?tid=45453759
+        // - https://nga.178.com/read.php?tid=45452628&_fp=2&rand=588
+        // - http://bbs.nga.cn/read.php?rand=123&tid=45452628
+        // - https://ngabbs.com/read.php?tid=45445417&page=2
+
+        // Match tid parameter anywhere in the query string
         const tidMatch = keyword.match(/[?&]tid=(\d+)/i);
+
+        // Match page parameter if exists
         const pageMatch = keyword.match(/[?&]page=(\d+)/i);
+
+        // Also verify it's an NGA domain
         const ngaDomainPattern = /https?:\/\/(?:ngabbs\.com|nga\.178\.com|bbs\.nga\.cn)\//i;
         const isDomainMatch = ngaDomainPattern.test(keyword);
 
         if (tidMatch && tidMatch[1] && isDomainMatch) {
             const tid = tidMatch[1];
             const page = pageMatch && pageMatch[1] ? pageMatch[1] : null;
+
             console.log('[Search] Extracted tid from URL:', tid, 'page:', page);
+
+            // Return object with tid and optional page
             return { tid, page };
         }
 
@@ -119,12 +122,7 @@ const SearchApp = {
         const container = document.getElementById('thread-results');
 
         if (!append) {
-            container.innerHTML = `
-                <div class="text-center py-16">
-                    <div class="inline-block w-12 h-12 border-4 border-gray-200 border-t-[#5a9d8a] rounded-full animate-spin mb-4"></div>
-                    <p class="text-gray-500">Searching threads...</p>
-                </div>
-            `;
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Searching threads...</p></div>';
         } else {
             document.getElementById('thread-sentinel').querySelector('.spinner-border').style.display = 'inline-block';
             document.getElementById('thread-sentinel-text').style.display = 'block';
@@ -158,12 +156,7 @@ const SearchApp = {
         const container = document.getElementById('forum-results');
 
         if (!append) {
-            container.innerHTML = `
-                <div class="text-center py-16">
-                    <div class="inline-block w-12 h-12 border-4 border-gray-200 border-t-[#5a9d8a] rounded-full animate-spin mb-4"></div>
-                    <p class="text-gray-500">Searching forums...</p>
-                </div>
-            `;
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Searching forums...</p></div>';
         } else {
             document.getElementById('forum-sentinel').querySelector('.spinner-border').style.display = 'inline-block';
             document.getElementById('forum-sentinel-text').style.display = 'block';
@@ -210,12 +203,7 @@ const SearchApp = {
 
         if (!threads || threads.length === 0) {
             if (!append) {
-                container.innerHTML = `
-                    <div class="bg-sky-50 border-l-4 border-sky-400 p-4 rounded-xl text-sky-800">
-                        <i class="fa-solid fa-info-circle mr-2"></i>
-                        No threads found
-                    </div>
-                `;
+                container.innerHTML = '<div class="alert alert-info">No threads found</div>';
             }
             this.hasMoreThreads = false;
             document.getElementById('thread-sentinel').style.display = 'none';
@@ -233,7 +221,7 @@ const SearchApp = {
             document.getElementById('thread-end').style.display = 'none';
         }
 
-        const threadItems = threads.map((thread, index) => {
+        const threadItems = threads.map(thread => {
             const title = thread.subject || 'Untitled';
             const author = thread.author || 'Unknown';
             const replies = thread.replies || 0;
@@ -246,50 +234,32 @@ const SearchApp = {
 
             // Get title styling from API
             const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
-            const titleClass = titleStyle ? '' : 'text-gray-800';
+            const titleClass = titleStyle ? 'text-decoration-none' : 'text-decoration-none text-dark';
 
             return `
-                <div class="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/50 
-                            shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_0_20px_rgba(90,157,138,0.3)] 
-                            transition-all duration-300 ease-out hover:-translate-y-1 p-5 mb-4"
-                     style="animation: fadeIn 0.3s ease-out ${index * 30}ms both">
-                    <div class="flex gap-4">
-                        ${hasAttachment ? `
-                        <div class="flex-shrink-0">
-                            <img src="https://wsrv.nl/?url=${thumbnailUrl}&w=100&h=100&fit=cover&a=attention" 
-                                 alt="Thumbnail" 
-                                 class="w-24 h-24 object-cover rounded-xl shadow-md ring-1 ring-gray-100" 
-                                 loading="lazy">
-                        </div>
-                        ` : ''}
-                        <div class="flex-1 min-w-0">
-                            <h5 class="text-lg font-semibold ${titleClass} group-hover:text-[#5a9d8a] transition-colors mb-2" ${titleStyle}>
-                                <a href="/thread/${tid}" class="hover:underline decoration-2 underline-offset-2">
-                                    ${hasAttachment ? '<i class="fa-solid fa-image text-gray-400 mr-2 text-sm"></i>' : ''}${Utils.escapeHtml(title)}
-                                </a>
-                            </h5>
-                            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-3">
-                                <span class="inline-flex items-center gap-1.5">
-                                    <i class="fa-solid fa-user-circle text-gray-400"></i>
-                                    ${Utils.escapeHtml(author)}
-                                </span>
-                                ${postDate ? `
-                                <span class="text-gray-300">•</span>
-                                <span class="inline-flex items-center gap-1.5">
-                                    <i class="fa-solid fa-calendar-days text-gray-400"></i>
-                                    ${postDate}
-                                </span>` : ''}
-                                ${fid ? `
-                                <span class="text-gray-300">•</span>
-                                <a href="/forum/${fid}" class="inline-flex items-center gap-1.5 text-[#5a9d8a] hover:underline">
-                                    View Forum
-                                </a>` : ''}
+                <div class="card mb-3 hover-shadow">
+                    <div class="card-body">
+                        <div class="row">
+                            ${hasAttachment ? `
+                            <div class="col-auto">
+                                <img src="https://wsrv.nl/?url=${thumbnailUrl}&w=100&h=100&fit=cover&a=attention" alt="Thumbnail" class="thread-thumbnail" loading="lazy">
                             </div>
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full 
-                                         bg-gradient-to-r from-emerald-500 to-[#5a9d8a] text-white text-xs font-semibold shadow-sm">
-                                <i class="fa-solid fa-comment-dots"></i>
-                                ${replies} ${replies === 1 ? 'reply' : 'replies'}
-                            </span>
+                            ` : ''}
+                            <div class="${hasAttachment ? 'col' : 'col-12'}">
+                                <h5 class="card-title mb-2">
+                                    <a href="/thread/${tid}" class="${titleClass}" ${titleStyle}>
+                                        ${hasAttachment ? '<i class="fa-solid fa-image text-muted me-2"></i>' : ''}${Utils.escapeHtml(title)}
+                                    </a>
+                                </h5>
+                                <p class="text-muted small mb-2">
+                                    <i class="fa-solid fa-user-circle"></i> ${Utils.escapeHtml(author)}
+                                    ${postDate ? ` • <i class="fa-solid fa-calendar-days"></i> ${postDate}` : ''}
+                                    ${fid ? ` • <a href="/forum/${fid}" class="text-decoration-none">View Forum</a>` : ''}
+                                </p>
+                                <span class="badge bg-success rounded-pill">
+                                    <i class="fa-solid fa-comment-dots"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -321,12 +291,7 @@ const SearchApp = {
 
         if (!forums || forums.length === 0) {
             if (!append) {
-                container.innerHTML = `
-                    <div class="bg-sky-50 border-l-4 border-sky-400 p-4 rounded-xl text-sky-800">
-                        <i class="fa-solid fa-info-circle mr-2"></i>
-                        No forums found
-                    </div>
-                `;
+                container.innerHTML = '<div class="alert alert-info">No forums found</div>';
             }
             this.hasMoreForums = false;
             document.getElementById('forum-sentinel').style.display = 'none';
@@ -344,26 +309,21 @@ const SearchApp = {
             document.getElementById('forum-end').style.display = 'none';
         }
 
-        const forumItems = forums.map((forum, index) => {
+        const forumItems = forums.map(forum => {
             const name = forum.name || 'Unnamed Forum';
             const fid = forum.fid || forum.id;
             const description = forum.info || forum.description || '';
 
             return `
-                <div class="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/50 
-                            shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_0_20px_rgba(90,157,138,0.3)] 
-                            transition-all duration-300 ease-out hover:-translate-y-1 p-5 mb-4"
-                     style="animation: fadeIn 0.3s ease-out ${index * 30}ms both">
-                    <h5 class="text-lg font-semibold text-gray-800 group-hover:text-[#5a9d8a] transition-colors mb-2">
-                        <a href="/forum/${fid}" class="flex items-center gap-3 hover:underline decoration-2 underline-offset-2">
-                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#5a9d8a] to-[#4a8d7a] 
-                                        flex items-center justify-center text-white shadow-lg flex-shrink-0">
-                                <i class="fa-solid fa-folder"></i>
-                            </div>
-                            ${Utils.escapeHtml(name)}
-                        </a>
-                    </h5>
-                    ${description ? `<p class="text-sm text-gray-500 ml-13 pl-0.5">${Utils.escapeHtml(description)}</p>` : ''}
+                <div class="card mb-3 hover-shadow">
+                    <div class="card-body">
+                        <h5 class="card-title mb-2">
+                            <a href="/forum/${fid}" class="text-decoration-none text-dark">
+                                <i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(name)}
+                            </a>
+                        </h5>
+                        ${description ? `<p class="text-muted small mb-0">${Utils.escapeHtml(description)}</p>` : ''}
+                    </div>
                 </div>
             `;
         }).join('');
@@ -377,11 +337,9 @@ const SearchApp = {
 
     showError(container, message) {
         container.innerHTML = `
-            <div class="bg-red-50 border-l-4 border-red-400 p-6 rounded-xl">
-                <h5 class="text-red-800 font-bold mb-2">
-                    <i class="fa-solid fa-circle-exclamation mr-2"></i>Error
-                </h5>
-                <p class="text-red-700">${Utils.escapeHtml(message)}</p>
+            <div class="alert alert-danger" role="alert">
+                <h5 class="alert-heading">Error</h5>
+                <p>${Utils.escapeHtml(message)}</p>
             </div>
         `;
     }
@@ -397,7 +355,3 @@ document.addEventListener('DOMContentLoaded', () => {
         SearchApp.init();
     }
 });
-
-window.SearchApp = SearchApp;
-
-export default SearchApp;

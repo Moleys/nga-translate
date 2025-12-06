@@ -5,7 +5,11 @@
       "mcp__cometix-indexer__codebase_search",
       "Bash(test:*)",
       "Bash(npm run build:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(del tailwind.config.js postcss.config.js)",
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

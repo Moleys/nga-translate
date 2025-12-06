@@ -1,4 +1,4 @@
-// Bookmarks Page - Display bookmarked threads with premium Tailwind UI
+// Bookmarks Page - Display bookmarked threads
 const BookmarksPage = {
     bookmarks: [],
 
@@ -135,7 +135,7 @@ const BookmarksPage = {
         container.style.display = 'block';
         emptyState.style.display = 'none';
 
-        let html = '<div class="space-y-4">';
+        let html = '<div class="list-group">';
 
         bookmarksToRender.forEach((bookmark, index) => {
             const timeAgo = this.getTimeAgo(bookmark.timestamp);
@@ -143,46 +143,32 @@ const BookmarksPage = {
 
             // Get title styling from API
             const titleStyle = Utils.getTitleStyle(bookmark.titlefont_api);
-            const titleClass = titleStyle ? '' : 'text-gray-800';
+            const titleClass = titleStyle ? 'text-decoration-none' : 'text-decoration-none text-dark';
 
             html += `
-                <div class="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/50 
-                            shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_0_20px_rgba(90,157,138,0.3)] 
-                            transition-all duration-300 ease-out hover:-translate-y-1 p-5
-                            border-l-4 border-l-amber-400"
-                     style="animation: fadeIn 0.3s ease-out ${index * 50}ms both">
-                    <div class="flex flex-wrap gap-4 items-start justify-between">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-3 mb-3">
-                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 
-                                            flex items-center justify-center text-white shadow-lg flex-shrink-0">
-                                    <i class="fa-solid fa-bookmark"></i>
-                                </div>
-                                <h5 class="text-lg font-semibold ${titleClass} group-hover:text-[#5a9d8a] transition-colors truncate" ${titleStyle}>
-                                    <a href="/thread/${Utils.escapeHtml(bookmark.tid)}" class="hover:underline decoration-2 underline-offset-2">
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fa-solid fa-bookmark text-warning me-2"></i>
+                                <h5 class="mb-0 flex-grow-1">
+                                    <a href="/thread/${Utils.escapeHtml(bookmark.tid)}" class="${titleClass}" ${titleStyle}>
                                         ${Utils.escapeHtml(bookmark.subject)}
                                     </a>
                                 </h5>
                             </div>
-                            <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-2">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-600">
-                                    <i class="fa-solid fa-user text-xs"></i> ${Utils.escapeHtml(bookmark.author)}
-                                </span>
-                                ${bookmark.forumName ? `
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e8efed] text-[#5a9d8a]">
-                                    <i class="fa-solid fa-folder text-xs"></i> ${Utils.escapeHtml(bookmark.forumName)}
-                                </span>` : ''}
-                            </div>
-                            <div class="flex items-center gap-2 text-xs text-gray-400">
-                                <i class="fa-solid fa-clock"></i>
-                                <span>Bookmarked ${timeAgo}</span>
-                                <span class="text-gray-300">•</span>
+                            <p class="mb-1 text-muted">
+                                <i class="fa-solid fa-user"></i> ${Utils.escapeHtml(bookmark.author)}
+                                ${bookmark.forumName ? `<span class="mx-2">•</span><i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(bookmark.forumName)}` : ''}
+                            </p>
+                            <small class="text-muted">
+                                <i class="fa-solid fa-clock"></i> Bookmarked ${timeAgo}
+                                <span class="mx-2">•</span>
                                 <span title="${fullDate}">${fullDate}</span>
-                            </div>
+                            </small>
                         </div>
-                        <div class="flex-shrink-0">
-                            <button class="remove-bookmark-btn p-2.5 rounded-xl text-gray-400 hover:text-red-500 
-                                           hover:bg-red-50 transition-all duration-200"
+                        <div class="ms-3">
+                            <button class="btn btn-outline-danger btn-sm remove-bookmark-btn"
                                     data-tid="${Utils.escapeHtml(bookmark.tid)}"
                                     title="Remove bookmark">
                                 <i class="fa-solid fa-trash"></i>
@@ -233,7 +219,3 @@ document.addEventListener('DOMContentLoaded', () => {
         BookmarksPage.init();
     }
 });
-
-window.BookmarksPage = BookmarksPage;
-
-export default BookmarksPage;
