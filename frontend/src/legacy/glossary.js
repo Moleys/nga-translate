@@ -1,3 +1,4 @@
+// Glossary Page - Premium Tailwind UI
 const GlossaryPage = {
   key: 'nga_glossary',
 
@@ -7,6 +8,7 @@ const GlossaryPage = {
 
     this.load();
     this.bindEvents();
+    this.updateStats();
   },
 
   parse(text) {
@@ -35,7 +37,15 @@ const GlossaryPage = {
       if (!raw) return;
       const arr = JSON.parse(raw);
       this.textarea.value = this.serialize(arr);
-    } catch {}
+    } catch { }
+  },
+
+  updateStats() {
+    const statsElem = document.getElementById('glossary-stats');
+    if (!statsElem) return;
+
+    const entries = this.parse(this.textarea.value);
+    statsElem.textContent = `${entries.length} entries`;
   },
 
   save() {
@@ -43,10 +53,11 @@ const GlossaryPage = {
       const arr = this.parse(this.textarea.value);
       localStorage.setItem(this.key, JSON.stringify(arr));
       localStorage.setItem('nga_glossary_updated_at', String(Date.now()));
-      alert('Saved glossary');
+      this.showToast('Glossary saved successfully!', 'success');
+      this.updateStats();
     } catch (e) {
       console.error(e);
-      alert('Failed to save');
+      this.showToast('Failed to save glossary', 'error');
     }
   },
 
@@ -61,7 +72,11 @@ const GlossaryPage = {
       a.click();
       URL.revokeObjectURL(url);
       a.remove();
-    } catch (e) { console.error(e); }
+      this.showToast('Glossary exported!', 'success');
+    } catch (e) {
+      console.error(e);
+      this.showToast('Export failed', 'error');
+    }
   },
 
   importFromFile(file) {
@@ -70,6 +85,8 @@ const GlossaryPage = {
       const text = String(reader.result || '');
       // only keep lines with '='
       this.textarea.value = text.split(/\r?\n/).filter(l => l.includes('=')).join('\n');
+      this.updateStats();
+      this.showToast('File imported!', 'success');
     };
     reader.readAsText(file);
   },
@@ -78,6 +95,52 @@ const GlossaryPage = {
     if (!confirm('Clear all glossary entries?')) return;
     localStorage.removeItem(this.key);
     this.textarea.value = '';
+    this.updateStats();
+    this.showToast('Glossary cleared', 'info');
+  },
+
+  showToast(message, type = 'info') {
+    // Create toast container if not exists
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'toast-container';
+      toastContainer.className = 'fixed bottom-6 right-6 z-50 space-y-2';
+      document.body.appendChild(toastContainer);
+    }
+
+    const colors = {
+      success: 'bg-emerald-500',
+      error: 'bg-red-500',
+      info: 'bg-sky-500'
+    };
+
+    const icons = {
+      success: 'fa-check-circle',
+      error: 'fa-circle-exclamation',
+      info: 'fa-info-circle'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `${colors[type]} text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 
+                       transform translate-x-full opacity-0 transition-all duration-300`;
+    toast.innerHTML = `
+      <i class="fa-solid ${icons[type]}"></i>
+      <span class="font-medium">${message}</span>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => {
+      toast.classList.remove('translate-x-full', 'opacity-0');
+    }, 10);
+
+    // Animate out and remove
+    setTimeout(() => {
+      toast.classList.add('translate-x-full', 'opacity-0');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
   },
 
   bindEvents() {
@@ -95,6 +158,9 @@ const GlossaryPage = {
       if (file) this.importFromFile(file);
       e.target.value = '';
     });
+
+    // Update stats on input
+    this.textarea?.addEventListener('input', () => this.updateStats());
   }
 };
 
@@ -105,4 +171,3 @@ document.addEventListener('DOMContentLoaded', () => {
 window.GlossaryPage = GlossaryPage;
 
 export default GlossaryPage;
-

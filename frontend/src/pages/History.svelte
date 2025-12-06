@@ -1,27 +1,66 @@
-<div class="row">
-  <div class="col-lg-10 mx-auto">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h1 class="display-6"><i class="fa-solid fa-clock-rotate-left"></i> Reading History</h1>
-        <p class="lead text-muted">Your recently viewed threads (max 60)</p>
+<div class="max-w-6xl mx-auto">
+  <!-- Header Section -->
+  <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <div class="flex items-center gap-4">
+      <div
+        class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#5a9d8a] to-emerald-600
+                  flex items-center justify-center text-white text-2xl shadow-lg"
+      >
+        <i class="fa-solid fa-clock-rotate-left"></i>
       </div>
       <div>
-        <span class="badge bg-success fs-6" id="history-count">0 threads</span>
-        <button class="btn btn-outline-danger btn-sm ms-2" id="clear-history-btn">
-          <i class="fa-solid fa-trash"></i> Clear All
-        </button>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
+          Reading History
+        </h1>
+        <p class="text-gray-500">Your recently viewed threads (max 60)</p>
       </div>
     </div>
-
-    <div id="thread-history-list"></div>
-
-    <div id="empty-history-state" style="display: none;" class="text-center py-5">
-      <i class="fa-solid fa-clock-rotate-left display-1 text-muted"></i>
-      <h3 class="mt-3">No Reading History</h3>
-      <p class="text-muted">Start browsing threads to build your reading history!</p>
-      <a href="/" class="btn btn-success btn-lg mt-3">
-        <i class="fa-solid fa-house"></i> Go Home
-      </a>
+    <div class="flex items-center gap-3">
+      <span
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+                   bg-gradient-to-r from-[#5a9d8a] to-emerald-600 text-white font-semibold shadow-md"
+        id="history-count"
+      >
+        0 threads
+      </span>
+      <button
+        class="px-4 py-2 rounded-xl text-red-600 bg-red-50 hover:bg-red-100
+                     font-medium transition-all duration-200 flex items-center gap-2"
+        id="clear-history-btn"
+      >
+        <i class="fa-solid fa-trash"></i>
+        Clear All
+      </button>
     </div>
+  </div>
+
+  <!-- History List -->
+  <div id="thread-history-list"></div>
+
+  <!-- Empty State -->
+  <div
+    id="empty-history-state"
+    style="display: none;"
+    class="text-center py-20 px-8 bg-white/60 backdrop-blur-sm rounded-3xl border border-gray-100"
+  >
+    <div
+      class="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gray-100 flex items-center justify-center"
+    >
+      <i class="fa-solid fa-clock-rotate-left text-5xl text-gray-300"></i>
+    </div>
+    <h3 class="text-2xl font-bold text-gray-700 mb-2">No Reading History</h3>
+    <p class="text-gray-500 mb-8 max-w-md mx-auto">
+      Start browsing threads to build your reading history! Your recently viewed
+      threads will appear here.
+    </p>
+    <a
+      href="/"
+      class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white
+              bg-gradient-to-r from-[#5a9d8a] to-[#4a8d7a] shadow-lg hover:shadow-xl
+              hover:shadow-[#5a9d8a]/25 transform hover:-translate-y-0.5 transition-all duration-200"
+    >
+      <i class="fa-solid fa-house"></i>
+      Go Home
+    </a>
   </div>
 </div>

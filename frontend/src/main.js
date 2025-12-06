@@ -1,3 +1,4 @@
+import './app.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './setup/api.js';
 import './setup/cookies.js';

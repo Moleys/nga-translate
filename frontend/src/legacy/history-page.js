@@ -1,4 +1,4 @@
-// History Page - Display thread reading history
+// History Page - Display thread reading history with premium Tailwind UI
 const HistoryPage = {
     history: [],
 
@@ -126,7 +126,7 @@ const HistoryPage = {
         container.style.display = 'block';
         emptyState.style.display = 'none';
 
-        let html = '<div class="list-group">';
+        let html = '<div class="space-y-3">';
 
         historyToRender.forEach((thread, index) => {
             const timeAgo = this.getTimeAgo(thread.timestamp);
@@ -134,24 +134,48 @@ const HistoryPage = {
 
             // Get title styling from API
             const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
+            const titleClass = titleStyle ? '' : 'text-gray-800';
 
             html += `
-                <a href="/thread/${Utils.escapeHtml(thread.tid)}" class="list-group-item list-group-item-action">
-                    <div class="d-flex w-100 justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center mb-2">
-                                <h5 class="mb-0 flex-grow-1" ${titleStyle}>${Utils.escapeHtml(thread.subject)}</h5>
-                                <span class="badge bg-secondary ms-2">#${index + 1}</span>
+                <a href="/thread/${Utils.escapeHtml(thread.tid)}" 
+                   class="group block bg-white/80 backdrop-blur-sm rounded-xl border border-gray-100/50 
+                          shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_0_20px_rgba(90,157,138,0.3)] 
+                          transition-all duration-300 ease-out hover:-translate-y-1 p-4
+                          border-l-4 border-l-transparent hover:border-l-[#5a9d8a] no-underline"
+                   style="animation: fadeIn 0.3s ease-out ${index * 30}ms both">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg 
+                                             bg-gradient-to-br from-gray-100 to-gray-200 text-gray-500 
+                                             text-xs font-bold flex-shrink-0">
+                                    #${index + 1}
+                                </span>
+                                <h6 class="text-base font-semibold ${titleClass} group-hover:text-[#5a9d8a] 
+                                           transition-colors line-clamp-2" ${titleStyle}>
+                                    ${Utils.escapeHtml(thread.subject)}
+                                </h6>
                             </div>
-                            <p class="mb-1 text-muted">
-                                <i class="fa-solid fa-user"></i> ${Utils.escapeHtml(thread.author)}
-                                ${thread.forumName ? `<span class="mx-2">•</span><i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(thread.forumName)}` : ''}
-                            </p>
-                            <small class="text-muted">
-                                <i class="fa-solid fa-clock"></i> ${timeAgo}
-                                <span class="mx-2">•</span>
-                                <span title="${fullDate}">${fullDate}</span>
-                            </small>
+                            <div class="flex flex-wrap items-center gap-2 text-sm">
+                                <span class="inline-flex items-center gap-1.5 text-gray-500">
+                                    <i class="fa-solid fa-user text-xs text-gray-400"></i> 
+                                    ${Utils.escapeHtml(thread.author)}
+                                </span>
+                                ${thread.forumName ? `
+                                <span class="text-gray-300">•</span>
+                                <span class="inline-flex items-center gap-1.5 text-[#5a9d8a]">
+                                    <i class="fa-solid fa-folder text-xs"></i> 
+                                    ${Utils.escapeHtml(thread.forumName)}
+                                </span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0 text-right">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg 
+                                         bg-gray-100 text-gray-500 text-xs font-medium"
+                                  title="${fullDate}">
+                                <i class="fa-solid fa-clock text-gray-400"></i>
+                                ${timeAgo}
+                            </span>
                         </div>
                     </div>
                 </a>
@@ -171,10 +195,10 @@ const HistoryPage = {
         const days = Math.floor(diff / 86400000);
 
         if (minutes < 1) return 'Just now';
-        if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-        if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-        if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
-        if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        if (days < 7) return `${days}d ago`;
+        if (days < 30) return `${Math.floor(days / 7)}w ago`;
 
         return new Date(timestamp).toLocaleDateString();
     }

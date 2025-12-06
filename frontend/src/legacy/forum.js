@@ -1,3 +1,4 @@
+// Forum App - Display forum threads with premium Tailwind UI
 const ForumApp = {
     currentPage: 1,
     currentFid: null,
@@ -252,7 +253,12 @@ const ForumApp = {
 
         if (!threads || threads.length === 0) {
             if (!append) {
-                container.innerHTML = '<div class="alert alert-warning">No threads found</div>';
+                container.innerHTML = `
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl text-amber-800">
+                        <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                        No threads found
+                    </div>
+                `;
             }
             this.hasMorePages = false;
             document.getElementById('scroll-end').style.display = 'block';
@@ -270,7 +276,7 @@ const ForumApp = {
             document.getElementById('scroll-end').style.display = 'none';
         }
 
-        const threadItems = threads.map(thread => {
+        const threadItems = threads.map((thread, index) => {
             const title = thread.subject || 'Untitled';
             const author = thread.author || 'Unknown';
             const lastPoster = thread.lastposter || author;
@@ -284,43 +290,67 @@ const ForumApp = {
 
             // Get title styling from API
             const titleStyle = Utils.getTitleStyle(thread.titlefont_api);
-            const titleClass = titleStyle ? 'text-decoration-none' : 'text-decoration-none text-dark';
+            const titleClass = titleStyle ? '' : 'text-gray-800';
 
             return `
-                <div class="card mb-3 hover-shadow">
-                    <div class="card-body">
-                        <div class="row">
-                            ${hasAttachment ? `
-                            <div class="col-auto">
-                                <img src="https://wsrv.nl/?url=${thumbnailUrl}&w=100&h=100&fit=cover&a=attention" alt="Thumbnail" class="thread-thumbnail" loading="lazy">
+                <div class="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-100/50 
+                            shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_0_20px_rgba(90,157,138,0.3)] 
+                            transition-all duration-300 ease-out hover:-translate-y-1 p-5 mb-4"
+                     style="animation: fadeIn 0.3s ease-out ${index * 30}ms both">
+                    <div class="flex gap-4">
+                        ${hasAttachment ? `
+                        <div class="flex-shrink-0">
+                            <img src="https://wsrv.nl/?url=${thumbnailUrl}&w=100&h=100&fit=cover&a=attention" 
+                                 alt="Thumbnail" 
+                                 class="w-24 h-24 md:w-28 md:h-28 object-cover rounded-xl shadow-md ring-1 ring-gray-100" 
+                                 loading="lazy">
+                        </div>
+                        ` : ''}
+                        <div class="flex-1 min-w-0">
+                            <h5 class="text-lg font-semibold ${titleClass} group-hover:text-[#5a9d8a] transition-colors mb-3" ${titleStyle}>
+                                <a href="/thread/${tid}" class="hover:underline decoration-2 underline-offset-2">
+                                    ${hasAttachment ? '<i class="fa-solid fa-image text-gray-400 mr-2 text-sm"></i>' : ''}${Utils.escapeHtml(title)}
+                                </a>
+                            </h5>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-500 mb-3">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-user-circle text-gray-400"></i>
+                                        <span class="font-medium text-gray-600">Author:</span>
+                                        ${Utils.escapeHtml(author)}
+                                    </div>
+                                    ${postDate ? `
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-calendar-days text-gray-400"></i>
+                                        <span class="font-medium text-gray-600">Posted:</span>
+                                        ${postDate}
+                                    </div>` : ''}
+                                </div>
+                                <div class="space-y-1 md:text-right">
+                                    ${lastPostDate ? `
+                                    <div class="flex items-center gap-2 md:justify-end">
+                                        <i class="fa-solid fa-clock-rotate-left text-gray-400"></i>
+                                        <span class="font-medium text-gray-600">Last:</span>
+                                        ${lastPostDate}
+                                    </div>` : ''}
+                                    <div class="flex items-center gap-2 md:justify-end">
+                                        <i class="fa-solid fa-user text-gray-400"></i>
+                                        ${Utils.escapeHtml(lastPoster)}
+                                    </div>
+                                </div>
                             </div>
-                            ` : ''}
-                            <div class="${hasAttachment ? 'col' : 'col-12'}">
-                                <h5 class="card-title mb-3">
-                                    <a href="/thread/${tid}" class="${titleClass}" ${titleStyle}>
-                                        ${hasAttachment ? '<i class="fa-solid fa-image text-muted me-2"></i>' : ''}${Utils.escapeHtml(title)}
-                                    </a>
-                                </h5>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <i class="fa-solid fa-user-circle"></i> <strong>Author:</strong> ${Utils.escapeHtml(author)}<br>
-                                            ${postDate ? `<i class="fa-solid fa-calendar-days"></i> <strong>Posted:</strong> ${postDate}` : ''}
-                                        </small>
-                                    </div>
-                                    <div class="col-md-6 text-md-end">
-                                        <small class="text-muted">
-                                            ${lastPostDate ? `<i class="fa-solid fa-clock-rotate-left"></i> <strong>Last:</strong> ${lastPostDate}<br>` : ''}
-                                            <i class="fa-solid fa-user"></i> ${Utils.escapeHtml(lastPoster)}
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                    <span class="badge bg-success rounded-pill">
-                                        <i class="fa-solid fa-comment-dots"></i> ${replies} ${replies === 1 ? 'reply' : 'replies'}
-                                    </span>
-                                    ${hasAttachment ? `<span class="badge bg-secondary rounded-pill ms-1"><i class="fa-solid fa-paperclip"></i> ${thread.attachs.length}</span>` : ''}
-                                </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full 
+                                             bg-gradient-to-r from-emerald-500 to-[#5a9d8a] text-white text-xs font-semibold shadow-sm">
+                                    <i class="fa-solid fa-comment-dots"></i>
+                                    ${replies} ${replies === 1 ? 'reply' : 'replies'}
+                                </span>
+                                ${hasAttachment ? `
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full 
+                                             bg-gray-100 text-gray-600 text-xs font-semibold">
+                                    <i class="fa-solid fa-paperclip"></i>
+                                    ${thread.attachs.length}
+                                </span>` : ''}
                             </div>
                         </div>
                     </div>
@@ -338,11 +368,9 @@ const ForumApp = {
     showLoading() {
         const container = document.getElementById('threads-list');
         container.innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-success" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-3">Loading threads...</p>
+            <div class="text-center py-16">
+                <div class="inline-block w-12 h-12 border-4 border-gray-200 border-t-[#5a9d8a] rounded-full animate-spin mb-4"></div>
+                <p class="text-gray-500">Loading threads...</p>
             </div>
         `;
     },
@@ -350,10 +378,15 @@ const ForumApp = {
     showError(message) {
         const container = document.getElementById('threads-list');
         container.innerHTML = `
-            <div class="alert alert-danger" role="alert">
-                <h5 class="alert-heading">Error</h5>
-                <p>${Utils.escapeHtml(message)}</p>
-                <button class="btn btn-sm btn-outline-danger" onclick="ForumApp.loadThreads()">Retry</button>
+            <div class="bg-red-50 border-l-4 border-red-400 p-6 rounded-xl">
+                <h5 class="text-red-800 font-bold mb-2">
+                    <i class="fa-solid fa-circle-exclamation mr-2"></i>Error
+                </h5>
+                <p class="text-red-700 mb-4">${Utils.escapeHtml(message)}</p>
+                <button class="px-4 py-2 rounded-lg bg-red-100 text-red-700 font-medium 
+                               hover:bg-red-200 transition-colors" onclick="ForumApp.loadThreads()">
+                    <i class="fa-solid fa-rotate-right mr-2"></i>Retry
+                </button>
             </div>
         `;
     },
@@ -380,8 +413,14 @@ const ForumApp = {
             if (!fid) return ''; // Skip invalid entries
 
             return `
-                <a href="/forum/${fid}" class="btn btn-outline-success btn-sm" title="${Utils.escapeHtml(description)}">
-                    <i class="fa-solid fa-folder"></i> ${Utils.escapeHtml(name)}
+                <a href="/forum/${fid}" 
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-xl 
+                          bg-white/60 border border-[#5a9d8a]/20 text-[#5a9d8a] text-sm font-medium
+                          hover:bg-[#5a9d8a] hover:text-white hover:border-[#5a9d8a]
+                          shadow-sm hover:shadow-md transition-all duration-200 no-underline"
+                   title="${Utils.escapeHtml(description)}">
+                    <i class="fa-solid fa-folder"></i>
+                    ${Utils.escapeHtml(name)}
                 </a>
             `;
         }).filter(item => item).join(''); // Remove empty strings

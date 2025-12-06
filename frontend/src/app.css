@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+/* =========================================
+   NGA Forums - Modern Premium Design
+   with TailwindCSS + Sage Green Theme
+   ========================================= */
+
+/* Custom Theme Configuration for TailwindCSS v4 */
+@theme {
+  /* Sage Green Color Palette */
+  --color-sage-50: #f8fbfa;
+  --color-sage-100: #e8efed;
+  --color-sage-200: #d1dfd9;
+  --color-sage-300: #b8c9c3;
+  --color-sage-400: #9bb3ab;
+  --color-sage-500: #5a9d8a;
+  --color-sage-600: #4a8d7a;
+  --color-sage-700: #3d7566;
+  --color-sage-800: #2f5a4f;
+  --color-sage-900: #1f3d35;
+
+  /* Custom Shadows */
+  --shadow-soft: 0 2px 15px -3px rgba(0, 0, 0, 0.07),
+    0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  --shadow-glow: 0 0 20px rgba(90, 157, 138, 0.3);
+
+  /* Custom Animations */
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-pulse-soft: pulseSoft 2s ease-in-out infinite;
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseSoft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Custom Base Styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #e8efed;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9bb3ab;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a9d8a;
+}
+
+/* Utility Classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Bootstrap Tab Overrides to use our custom colors */
+.nav-link.active {
+  background-color: white !important;
+  color: #5a9d8a !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Filter button active state */
+.filter-btn.active {
+  background-color: #5a9d8a !important;
+  color: white !important;
+  border-color: #5a9d8a !important;
+}

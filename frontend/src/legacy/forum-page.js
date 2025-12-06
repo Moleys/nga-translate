@@ -1,4 +1,4 @@
-// Forum Page - Display all forums with favorite functionality
+// Forum Page - Display all forums with favorite functionality and premium Tailwind UI
 const ForumPage = {
     favorites: [],
 
@@ -59,7 +59,12 @@ const ForumPage = {
         if (!container) return;
 
         if (typeof forumList === 'undefined' || forumList.length === 0) {
-            container.innerHTML = '<div class="alert alert-warning">No forums available</div>';
+            container.innerHTML = `
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl text-amber-800">
+                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                    No forums available
+                </div>
+            `;
             return;
         }
 
@@ -90,7 +95,7 @@ const ForumPage = {
                     }
                     if (forum.subject) {
                         // Preprocess BBCode - extract text segments
-                        const {textSegments, structure, emptyLines} = BBCodeTranslator.prepareBBCodeForTranslation(forum.subject);
+                        const { textSegments, structure, emptyLines } = BBCodeTranslator.prepareBBCodeForTranslation(forum.subject);
                         textMap.push({
                             type: 'forum_subject',
                             catIdx,
@@ -160,47 +165,65 @@ const ForumPage = {
         const data = dataToRender || forumList;
 
         if (typeof data === 'undefined' || data.length === 0) {
-            container.innerHTML = '<div class="alert alert-warning">No forums available</div>';
+            container.innerHTML = `
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl text-amber-800">
+                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                    No forums available
+                </div>
+            `;
             return;
         }
 
         let html = '';
+        let categoryIndex = 0;
 
         data.forEach(category => {
             html += `
-                <div class="card mb-4">
-                    <div class="card-header bg-success text-white">
-                        <h4 class="mb-0"><i class="fa-solid fa-folder-open"></i> ${Utils.escapeHtml(category.category)}</h4>
+                <div class="mb-8" style="animation: fadeIn 0.4s ease-out ${categoryIndex * 100}ms both">
+                    <div class="bg-gradient-to-r from-[#5a9d8a] to-[#4a8d7a] rounded-t-2xl px-6 py-4 shadow-lg">
+                        <h4 class="text-white font-bold text-lg flex items-center gap-3 m-0">
+                            <i class="fa-solid fa-folder-open"></i>
+                            ${Utils.escapeHtml(category.category)}
+                        </h4>
                     </div>
-                    <div class="card-body">
-                        <div class="row g-3">
+                    <div class="bg-white/80 backdrop-blur-sm rounded-b-2xl border border-t-0 border-gray-100/50 p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             `;
 
-            category.forums.forEach(forum => {
+            category.forums.forEach((forum, forumIndex) => {
                 const isFavorited = this.isFavorited(forum.fid);
-                const favoriteClass = isFavorited ? 'fa-solid fa-star text-warning' : 'fa-regular fa-star';
+                const favoriteClass = isFavorited
+                    ? 'text-amber-400 hover:text-amber-500'
+                    : 'text-gray-300 hover:text-amber-400';
+                const favoriteIcon = isFavorited ? 'fa-solid fa-star' : 'fa-regular fa-star';
 
                 html += `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="forum-item d-flex align-items-center p-3 border rounded hover-shadow">
-                            <img src="https://wsrv.nl/?url=${forum.avatar}" alt="${Utils.escapeHtml(forum.name)}" class="forum-avatar me-3" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22%3E%3Crect fill=%22%23ddd%22 width=%2250%22 height=%2250%22/%3E%3C/svg%3E'">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">
-                                    <a href="/forum/${forum.fid}" class="text-decoration-none text-dark fw-bold">
-                                        ${Utils.escapeHtml(forum.name)}
-                                    </a>
-                                </h6>
-                                <small class="text-muted">${Utils.escapeHtml(forum.subject)}</small>
-                            </div>
-                            <button class="btn btn-link p-0 ms-2 favorite-btn"
-                                    data-fid="${forum.fid}"
-                                    data-name="${Utils.escapeHtml(forum.name)}"
-                                    data-subject="${Utils.escapeHtml(forum.subject)}"
-                                    data-avatar="${forum.avatar}"
-                                    title="${isFavorited ? 'Remove favorite' : 'Add favorite'}">
-                                <i class="${favoriteClass} fs-5"></i>
-                            </button>
+                    <div class="group flex items-center gap-4 p-4 rounded-xl bg-white/60 border border-gray-100 
+                                hover:bg-white hover:shadow-[0_0_20px_rgba(90,157,138,0.15)] 
+                                hover:border-[#5a9d8a]/20 transition-all duration-300"
+                         style="animation: fadeIn 0.3s ease-out ${forumIndex * 30}ms both">
+                        <img src="https://wsrv.nl/?url=${forum.avatar}" 
+                             alt="${Utils.escapeHtml(forum.name)}" 
+                             class="w-12 h-12 rounded-xl object-cover shadow-md ring-2 ring-gray-100 
+                                    group-hover:ring-[#5a9d8a]/30 transition-all duration-300 flex-shrink-0"
+                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23e8efed%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E'">
+                        <div class="flex-1 min-w-0">
+                            <h6 class="font-bold text-gray-800 group-hover:text-[#5a9d8a] transition-colors mb-0.5 truncate">
+                                <a href="/forum/${forum.fid}" class="hover:underline decoration-2 underline-offset-2">
+                                    ${Utils.escapeHtml(forum.name)}
+                                </a>
+                            </h6>
+                            <p class="text-xs text-gray-500 line-clamp-1 m-0">${Utils.escapeHtml(forum.subject)}</p>
                         </div>
+                        <button class="favorite-btn p-2 rounded-lg ${favoriteClass} transition-all duration-200 
+                                       hover:scale-110 flex-shrink-0"
+                                data-fid="${forum.fid}"
+                                data-name="${Utils.escapeHtml(forum.name)}"
+                                data-subject="${Utils.escapeHtml(forum.subject)}"
+                                data-avatar="${forum.avatar}"
+                                title="${isFavorited ? 'Remove favorite' : 'Add favorite'}">
+                            <i class="${favoriteIcon} text-lg"></i>
+                        </button>
                     </div>
                 `;
             });
@@ -210,6 +233,7 @@ const ForumPage = {
                     </div>
                 </div>
             `;
+            categoryIndex++;
         });
 
         container.innerHTML = html;
