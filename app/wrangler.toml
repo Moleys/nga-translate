@@ -1,0 +1,13 @@
+name = "nga-api-worker"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Environment variables (optional)
+# [vars]
+# NGA_UID = ""
+# NGA_TOKEN = ""
+
+# You can also use secrets for sensitive data:
+# Run: wrangler secret put NGA_UID
+# Run: wrangler secret put NGA_TOKEN
+

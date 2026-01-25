@@ -188,15 +188,20 @@ const TranslationUtil = {
     formatTranslatedText(text) {
         if (!text) return text;
 
+        // Decode HTML entities first
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        let decoded = textarea.value;
+
         // Split by <br/> or <br> tags
-        const lines = text.split(/<br\s*\/?>/gi);
+        const lines = decoded.split(/<br\s*\/?>/gi);
 
         // Process each line: trim and capitalize first character
         const formattedLines = lines.map(line => {
             const trimmed = line.trim();
             if (!trimmed) return trimmed;
 
-            // Capitalize first character
+            // Capitalize first character (handle UTF-8 properly)
             return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
         });
 
@@ -333,8 +338,14 @@ const TranslationUtil = {
         const hasLeadingSpace = /^\s/.test(original);
         const hasTrailingSpace = /\s$/.test(original);
 
+        // Extract text and decode HTML entities
         let text = typeof value === 'string' ? value : (value?.translations?.[0]?.text || '');
         if (typeof text !== 'string') text = '';
+
+        // Decode HTML entities (like &#129300; for emojis)
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        text = textarea.value;
 
         const prev = node.previousSibling;
         const next = node.nextSibling;

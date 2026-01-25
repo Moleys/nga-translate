@@ -1,0 +1,23 @@
+{
+  "name": "nga-api-worker",
+  "version": "1.0.0",
+  "description": "NGA API Cloudflare Worker - Converted from PHP",
+  "main": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "nga",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
+
